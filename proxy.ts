@@ -10,26 +10,30 @@ export function proxy(request: NextRequest) {
     return NextResponse.next()
   }
 
-  const token =
-    request.cookies.get('sb-access-token')?.value ||
-    request.cookies.get('supabase-auth-token')?.value
+  // procura qualquer cookie do supabase
+  const hasSupabaseCookie = request.cookies
+    .getAll()
+    .some(cookie => cookie.name.startsWith('sb-'))
 
-  // protege rotas privadas
-  if (
-    pathname.startsWith('/admin') ||
-    pathname.startsWith('/alunos') ||
-    pathname.startsWith('/professores') ||
-    pathname.startsWith('/escolas') ||
-    pathname.startsWith('/atendimentos') ||
-    pathname.startsWith('/responsaveis') ||
-    pathname.startsWith('/cuidadores') ||
-    pathname.startsWith('/horarios') ||
-    pathname.startsWith('/relatorios')
-  ) {
+  // rotas protegidas
+  const protectedRoutes = [
+    '/admin',
+    '/alunos',
+    '/professores',
+    '/escolas',
+    '/atendimentos',
+    '/responsaveis',
+    '/cuidadores',
+    '/horarios',
+    '/relatorios'
+  ]
 
-    if (!token) {
-      return NextResponse.redirect(new URL('/login', request.url))
-    }
+  const isProtected = protectedRoutes.some(route =>
+    pathname.startsWith(route)
+  )
+
+  if (isProtected && !hasSupabaseCookie) {
+    return NextResponse.redirect(new URL('/login', request.url))
   }
 
   return NextResponse.next()
