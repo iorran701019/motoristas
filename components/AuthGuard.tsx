@@ -10,7 +10,6 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
   const [verificando, setVerificando] = useState(true)
-  const [autenticado, setAutenticado] = useState(false)
 
   useEffect(() => {
     if (rotasPublicas.includes(pathname)) {
@@ -18,38 +17,22 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
       return
     }
 
-    let redirecionarTimeout: ReturnType<typeof setTimeout>
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      clearTimeout(redirecionarTimeout)
-
-      if (session) {
-        setAutenticado(true)
-        setVerificando(false)
-      } else {
-        // Aguarda 800ms antes de redirecionar — dá tempo do localStorage carregar
-        redirecionarTimeout = setTimeout(() => {
-          setAutenticado(false)
+    const verificar = async () => {
+      // Tenta até 3 vezes com intervalo — dá tempo do localStorage inicializar
+      for (let i = 0; i < 3; i++) {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session) {
           setVerificando(false)
-          router.push('/login')
-        }, 800)
+          return
+        }
+        // Aguarda 300ms entre tentativas
+        await new Promise((r) => setTimeout(r, 300))
       }
-    })
-
-    // Timeout de segurança — se onAuthStateChange não disparar em 3s, redireciona
-    const timeoutSeguranca = setTimeout(async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) {
-        router.push('/login')
-      }
-      setVerificando(false)
-    }, 3000)
-
-    return () => {
-      subscription.unsubscribe()
-      clearTimeout(redirecionarTimeout)
-      clearTimeout(timeoutSeguranca)
+      // Após 3 tentativas sem sessão, redireciona
+      router.push('/login')
     }
+
+    verificar()
   }, [pathname, router])
 
   if (rotasPublicas.includes(pathname)) {
@@ -62,10 +45,6 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         <p className="text-gray-400 text-sm">Carregando...</p>
       </div>
     )
-  }
-
-  if (!autenticado) {
-    return null
   }
 
   return <>{children}</>
