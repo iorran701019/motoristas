@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
-// ————— tipos —————
 type Aluno = {
   id: string
   nome: string
@@ -19,6 +18,13 @@ type Aluno = {
   observacoes: string
   escola_id: string
   escolas?: { nome: string }
+  ano_escolar?: string
+  turno?: string
+  data_avaliacao_cemae?: string
+  status_cemae?: string
+  prioridade_cuidador?: string
+  judicializacao?: boolean
+  obs_judicializacao?: string
 }
 
 type Responsavel = {
@@ -55,7 +61,6 @@ type Atendimento = {
   professores_aee?: { nome: string }
 }
 
-// ————— helper: tempo de espera —————
 function tempoDeEspera(dataInicio: string): string {
   const inicio = new Date(dataInicio)
   const hoje = new Date()
@@ -78,11 +83,15 @@ function calcularIdade(dataNascimento: string): string {
   return `${idade} anos`
 }
 
-// ————— componente —————
+const prioridadeConfig: Record<string, { cor: string; label: string }> = {
+  urgentissimo: { cor: 'bg-red-500', label: 'Urgentíssimo' },
+  urgente: { cor: 'bg-yellow-400', label: 'Urgente' },
+  desejavel: { cor: 'bg-green-500', label: 'Desejável' },
+}
+
 export default function PerfilAluno() {
   const { id } = useParams()
   const router = useRouter()
-
   const [aluno, setAluno] = useState<Aluno | null>(null)
   const [responsaveis, setResponsaveis] = useState<Responsavel[]>([])
   const [cuidadores, setCuidadores] = useState<Cuidador[]>([])
@@ -98,32 +107,13 @@ export default function PerfilAluno() {
 
   async function carregarTudo() {
     setLoading(true)
-
     const [{ data: alunoData }, { data: respData }, { data: cuidData }, { data: atendData }] =
       await Promise.all([
-        supabase
-          .from('alunos')
-          .select('*, escolas(nome)')
-          .eq('id', id)
-          .single(),
-        supabase
-          .from('responsaveis')
-          .select('*')
-          .eq('aluno_id', id)
-          .order('responsavel_principal', { ascending: false }),
-        supabase
-          .from('cuidadores')
-          .select('*')
-          .eq('aluno_id', id)
-          .eq('ativo', true),
-        supabase
-          .from('atendimentos')
-          .select('*, professores_aee(nome)')
-          .eq('aluno_id', id)
-          .order('data', { ascending: false })
-          .limit(20),
+        supabase.from('alunos').select('*, escolas(nome)').eq('id', id).single(),
+        supabase.from('responsaveis').select('*').eq('aluno_id', id).order('responsavel_principal', { ascending: false }),
+        supabase.from('cuidadores').select('*').eq('aluno_id', id).eq('ativo', true),
+        supabase.from('atendimentos').select('*, professores_aee(nome)').eq('aluno_id', id).order('data', { ascending: false }).limit(20),
       ])
-
     if (alunoData) {
       setAluno(alunoData)
       setObservacoes(alunoData.observacoes || '')
@@ -162,6 +152,7 @@ export default function PerfilAluno() {
   const faltas = atendimentos.filter((a) => !a.presente).length
   const totalSessoes = atendimentos.length
   const percFreq = totalSessoes > 0 ? Math.round((presencas / totalSessoes) * 100) : null
+  const prio = aluno.prioridade_cuidador ? prioridadeConfig[aluno.prioridade_cuidador] : null
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
@@ -169,16 +160,10 @@ export default function PerfilAluno() {
 
         {/* Cabeçalho */}
         <div className="flex items-center justify-between">
-          <button
-            onClick={() => router.back()}
-            className="text-blue-600 hover:underline text-sm flex items-center gap-1"
-          >
+          <button onClick={() => router.back()} className="text-blue-600 hover:underline text-sm flex items-center gap-1">
             ← Voltar
           </button>
-          <button
-            onClick={() => window.print()}
-            className="bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm px-4 py-2 rounded"
-          >
+          <button onClick={() => window.print()} className="bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm px-4 py-2 rounded">
             🖨️ Imprimir
           </button>
         </div>
@@ -199,11 +184,12 @@ export default function PerfilAluno() {
               {aluno.tipo_deficiencia || 'Deficiência não informada'}
             </span>
           </div>
-
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
             <Info label="Data de nascimento" value={aluno.data_nascimento ? `${new Date(aluno.data_nascimento).toLocaleDateString('pt-BR')} (${calcularIdade(aluno.data_nascimento)})` : '—'} />
             <Info label="CPF" value={aluno.cpf || '—'} />
             <Info label="CID" value={aluno.cid || '—'} />
+            <Info label="Ano escolar" value={aluno.ano_escolar || '—'} />
+            <Info label="Turno" value={aluno.turno || '—'} />
             <Info label="Laudo" value={aluno.tem_laudo ? '✅ Possui laudo' : '❌ Sem laudo'} />
             {aluno.laudo_descricao && (
               <div className="col-span-2">
@@ -213,6 +199,37 @@ export default function PerfilAluno() {
             {aluno.necessidades_especificas && (
               <div className="col-span-3">
                 <Info label="Necessidades específicas" value={aluno.necessidades_especificas} />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* CEMAE */}
+        <div className="bg-white rounded-xl shadow p-6">
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">🏫 Avaliação CEMAE / Cuidador</h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+            <Info label="Data de avaliação CEMAE" value={aluno.data_avaliacao_cemae ? new Date(aluno.data_avaliacao_cemae).toLocaleDateString('pt-BR') : '—'} />
+            <Info label="Status CEMAE" value={aluno.status_cemae || '—'} />
+            <div>
+              <p className="text-xs text-gray-400 uppercase tracking-wide">Prioridade</p>
+              {prio ? (
+                <div className="flex items-center gap-2 mt-1">
+                  <span className={`inline-block w-3 h-3 rounded-full ${prio.cor}`} />
+                  <span className="text-gray-700 font-medium">{prio.label}</span>
+                </div>
+              ) : (
+                <p className="text-gray-700 font-medium">—</p>
+              )}
+            </div>
+            <div className="col-span-2 md:col-span-3 flex items-center gap-2">
+              <span className={`inline-block w-3 h-3 rounded-full ${aluno.judicializacao ? 'bg-purple-500' : 'bg-gray-300'}`} />
+              <span className="text-sm text-gray-700 font-medium">
+                Judicialização: {aluno.judicializacao ? 'Sim (ordem do Ministério Público)' : 'Não'}
+              </span>
+            </div>
+            {aluno.obs_judicializacao && (
+              <div className="col-span-3">
+                <Info label="Obs. judicialização" value={aluno.obs_judicializacao} />
               </div>
             )}
           </div>
@@ -230,9 +247,7 @@ export default function PerfilAluno() {
                     <p className="font-medium text-gray-800">
                       {r.nome}
                       {r.responsavel_principal && (
-                        <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
-                          Principal
-                        </span>
+                        <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Principal</span>
                       )}
                     </p>
                     <p className="text-sm text-gray-500">{r.parentesco}</p>
@@ -245,10 +260,10 @@ export default function PerfilAluno() {
           )}
         </Section>
 
-        {/* Cuidadores */}
-        <Section title="🤝 Cuidadores" count={cuidadores.length}>
+        {/* Agentes de Apoio */}
+        <Section title="🤝 Agentes de Apoio" count={cuidadores.length}>
           {cuidadores.length === 0 ? (
-            <p className="text-gray-400 text-sm">Nenhum cuidador ativo vinculado.</p>
+            <p className="text-gray-400 text-sm">Nenhum agente de apoio ativo vinculado.</p>
           ) : (
             <div className="space-y-3">
               {cuidadores.map((c) => (
@@ -295,21 +310,15 @@ export default function PerfilAluno() {
 
         {/* Histórico de atendimentos */}
         <Section title="📋 Histórico de atendimentos" count={totalSessoes}>
-          {/* Resumo de frequência */}
           {totalSessoes > 0 && (
             <div className="flex gap-4 mb-4 text-sm">
               <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full">✅ {presencas} presenças</span>
               <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full">❌ {faltas} faltas</span>
-              <span className={`px-3 py-1 rounded-full font-semibold ${
-                percFreq !== null && percFreq >= 75
-                  ? 'bg-green-200 text-green-800'
-                  : 'bg-red-200 text-red-800'
-              }`}>
+              <span className={`px-3 py-1 rounded-full font-semibold ${percFreq !== null && percFreq >= 75 ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}`}>
                 {percFreq}% de frequência
               </span>
             </div>
           )}
-
           {atendimentos.length === 0 ? (
             <p className="text-gray-400 text-sm">Nenhum atendimento registrado.</p>
           ) : (
@@ -349,7 +358,6 @@ export default function PerfilAluno() {
   )
 }
 
-// ————— sub-componentes —————
 function Info({ label, value }: { label: string; value: string }) {
   return (
     <div>
@@ -365,9 +373,7 @@ function Section({ title, count, children }: { title: string; count?: number; ch
       <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
         {title}
         {count !== undefined && (
-          <span className="text-sm font-normal bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
-            {count}
-          </span>
+          <span className="text-sm font-normal bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{count}</span>
         )}
       </h2>
       {children}

@@ -23,50 +23,34 @@ export default function Login() {
     })
 
     if (error) {
-      setErro('Erro de autenticação: ' + error.message)
+      setErro('E-mail ou senha incorretos.')
       setLoading(false)
       return
     }
 
-    if (!data.user) {
-      setErro('Usuário não retornado.')
-      setLoading(false)
-      return
-    }
-
-    const { data: usuario, error: erroUsuario } = await supabase
+    // Verifica se o usuário está ativo
+    const { data: usuario } = await supabase
       .from('usuarios')
       .select('status, perfil')
       .eq('id', data.user.id)
       .single()
 
-    if (erroUsuario) {
-      setErro('Erro ao buscar perfil: ' + erroUsuario.message)
-      setLoading(false)
-      return
-    }
-
-    if (!usuario) {
-      setErro('Perfil não encontrado na tabela usuarios.')
-      setLoading(false)
-      return
-    }
-
-    if (usuario.status === 'pendente') {
+    if (!usuario || usuario.status === 'pendente') {
       await supabase.auth.signOut()
-      setErro('Cadastro aguardando aprovação.')
+      setErro('Seu cadastro ainda está aguardando aprovação do administrador.')
       setLoading(false)
       return
     }
 
     if (usuario.status === 'inativo') {
       await supabase.auth.signOut()
-      setErro('Acesso desativado.')
+      setErro('Seu acesso foi desativado. Entre em contato com o administrador.')
       setLoading(false)
       return
     }
 
-   window.location.href = '/'
+    router.push('/')
+    router.refresh()
   }
 
   return (

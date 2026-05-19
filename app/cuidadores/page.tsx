@@ -94,14 +94,6 @@ export default function Cuidadores() {
 
   const campoClass = "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
 
-  const [confirmando, setConfirmando] = useState<string | null>(null)
-
-const desativar = async (id: string) => {
-  await supabase.from('cuidadores').update({ ativo: false }).eq('id', id)
-  setConfirmando(null)
-  carregar()
-}
-
   return (
     <main className="min-h-screen bg-gray-50">
       <header className="bg-blue-700 text-white px-6 py-4 shadow">
@@ -219,24 +211,19 @@ const desativar = async (id: string) => {
                 <tbody className="divide-y divide-gray-100">
                   {cuidadores.map((c) => (
                     <tr key={c.id} className="hover:bg-gray-50">
-                                      <td className="px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    <button onClick={() => abrirEditar(c)} className="text-gray-500 hover:text-gray-700 hover:underline text-xs">
-                      Editar
-                    </button>
-                    {confirmando === c.id ? (
-                      <span className="flex items-center gap-1">
-                        <button onClick={() => desativar(c.id)} className="text-red-600 text-xs font-medium hover:underline">Confirmar</button>
-                        <span className="text-gray-300">|</span>
-                        <button onClick={() => setConfirmando(null)} className="text-gray-400 text-xs hover:underline">Cancelar</button>
-                      </span>
-                    ) : (
-                      <button onClick={() => setConfirmando(c.id)} className="text-red-400 hover:text-red-600 text-xs">
-                        Excluir
-                      </button>
-                    )}
-                  </div>
-                    </td>
+                      <td className="px-4 py-3 font-medium text-gray-800">{c.nome}</td>
+                      <td className="px-4 py-3 text-gray-500">{c.alunos?.nome || '—'}</td>
+                      <td className="px-4 py-3 text-gray-500">{c.funcao || '—'}</td>
+                      <td className="px-4 py-3">
+                        <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full text-xs">{c.vinculo}</span>
+                      </td>
+                      <td className="px-4 py-3 text-gray-500">{c.turno || '—'}</td>
+                      <td className="px-4 py-3 text-gray-500">{c.telefone || '—'}</td>
+                      <td className="px-4 py-3">
+                        <button onClick={() => abrirEditar(c)} className="text-gray-500 hover:text-gray-700 hover:underline text-xs">
+                          Editar
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
