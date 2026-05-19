@@ -18,21 +18,38 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
       return
     }
 
-    // Escuta mudanças de sessão — mais confiável que getSession em produção
+    let redirecionarTimeout: ReturnType<typeof setTimeout>
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      clearTimeout(redirecionarTimeout)
+
       if (session) {
         setAutenticado(true)
         setVerificando(false)
-      } else if (event === 'SIGNED_OUT' || event === 'INITIAL_SESSION') {
-        setAutenticado(false)
-        setVerificando(false)
-        if (!rotasPublicas.includes(pathname)) {
+      } else {
+        // Aguarda 800ms antes de redirecionar — dá tempo do localStorage carregar
+        redirecionarTimeout = setTimeout(() => {
+          setAutenticado(false)
+          setVerificando(false)
           router.push('/login')
-        }
+        }, 800)
       }
     })
 
-    return () => subscription.unsubscribe()
+    // Timeout de segurança — se onAuthStateChange não disparar em 3s, redireciona
+    const timeoutSeguranca = setTimeout(async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        router.push('/login')
+      }
+      setVerificando(false)
+    }, 3000)
+
+    return () => {
+      subscription.unsubscribe()
+      clearTimeout(redirecionarTimeout)
+      clearTimeout(timeoutSeguranca)
+    }
   }, [pathname, router])
 
   if (rotasPublicas.includes(pathname)) {
