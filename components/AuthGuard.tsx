@@ -29,6 +29,15 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     }
 
     verificar()
+
+    // Escuta mudanças de sessão
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT' || (!session && !rotasPublicas.includes(pathname))) {
+        router.push('/login')
+      }
+    })
+
+    return () => subscription.unsubscribe()
   }, [pathname, router])
 
   if (verificando && !rotasPublicas.includes(pathname)) {
