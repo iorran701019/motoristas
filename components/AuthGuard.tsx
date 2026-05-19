@@ -18,17 +18,16 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     }
 
     const verificar = async () => {
-      // Tenta até 3 vezes com intervalo — dá tempo do localStorage inicializar
       for (let i = 0; i < 3; i++) {
         const { data: { session } } = await supabase.auth.getSession()
+        console.log(`Tentativa ${i + 1}:`, session ? 'TEM SESSÃO' : 'SEM SESSÃO', session?.user?.email)
         if (session) {
           setVerificando(false)
           return
         }
-        // Aguarda 300ms entre tentativas
         await new Promise((r) => setTimeout(r, 300))
       }
-      // Após 3 tentativas sem sessão, redireciona
+      console.log('Redirecionando para login...')
       router.push('/login')
     }
 
