@@ -4,44 +4,47 @@ import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
-const rotasPublicas = ['/login', '/cadastro']
+const rotasPublicas = ['/login']
 
-export default function AuthGuard({ children }: { children: React.ReactNode }) {
+export default function AuthGuard({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   const router = useRouter()
   const pathname = usePathname()
-  const [verificando, setVerificando] = useState(true)
+
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (rotasPublicas.includes(pathname)) {
-      setVerificando(false)
-      return
-    }
-
-    const verificar = async () => {
-      for (let i = 0; i < 3; i++) {
-        const { data: { session } } = await supabase.auth.getSession()
-        console.log(`Tentativa ${i + 1}:`, session ? 'TEM SESSÃO' : 'SEM SESSÃO', session?.user?.email)
-        if (session) {
-          setVerificando(false)
-          return
-        }
-        await new Promise((r) => setTimeout(r, 300))
+    const verificarSessao = async () => {
+      // rotas públicas
+      if (rotasPublicas.includes(pathname)) {
+        setLoading(false)
+        return
       }
-      console.log('Redirecionando para login...')
-      router.push('/login')
+
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      console.log('SESSION:', session)
+
+      if (!session) {
+        router.replace('/login')
+        return
+      }
+
+      setLoading(false)
     }
 
-    verificar()
+    verificarSessao()
   }, [pathname, router])
 
-  if (rotasPublicas.includes(pathname)) {
-    return <>{children}</>
-  }
-
-  if (verificando) {
+  if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <p className="text-gray-400 text-sm">Carregando...</p>
+      <div className="min-h-screen flex items-center justify-center">
+        Carregando...
       </div>
     )
   }
