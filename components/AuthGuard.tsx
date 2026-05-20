@@ -1,10 +1,9 @@
 'use client'
-
 import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
-const rotasPublicas = ['/login']
+const rotasPublicas = ['/login', '/cadastro']
 
 export default function AuthGuard({
   children,
@@ -13,12 +12,10 @@ export default function AuthGuard({
 }) {
   const router = useRouter()
   const pathname = usePathname()
-
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const verificarSessao = async () => {
-      // rotas públicas
       if (rotasPublicas.includes(pathname)) {
         setLoading(false)
         return
@@ -27,8 +24,6 @@ export default function AuthGuard({
       const {
         data: { session },
       } = await supabase.auth.getSession()
-
-      console.log('SESSION:', session)
 
       if (!session) {
         router.replace('/login')
