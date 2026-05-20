@@ -23,6 +23,7 @@ export default function Responsaveis() {
   const [mostrarForm, setMostrarForm] = useState(false)
   const [salvando, setSalvando] = useState(false)
   const [editando, setEditando] = useState<any | null>(null)
+  const [confirmando, setConfirmando] = useState<string | null>(null)
   const [form, setForm] = useState(formVazio)
 
   useEffect(() => { carregar() }, [])
@@ -69,27 +70,23 @@ export default function Responsaveis() {
     e.preventDefault()
     setSalvando(true)
     const payload = { ...form, aluno_id: form.aluno_id || null }
-
     if (editando) {
       await supabase.from('responsaveis').update(payload).eq('id', editando.id)
     } else {
       await supabase.from('responsaveis').insert([payload])
     }
-
     cancelar()
     setSalvando(false)
     carregar()
   }
 
-  const campoClass = "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+  const desativar = async (id: string) => {
+    await supabase.from('responsaveis').update({ ativo: false }).eq('id', id)
+    setConfirmando(null)
+    carregar()
+  }
 
-  const [confirmando, setConfirmando] = useState<string | null>(null)
-
-const desativar = async (id: string) => {
-  await supabase.from('responsaveis').update({ ativo: false }).eq('id', id)
-  setConfirmando(null)
-  carregar()
-}
+  const campoClass = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400'
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -114,7 +111,6 @@ const desativar = async (id: string) => {
             <h2 className="font-semibold text-gray-700 border-b pb-2">
               {editando ? `Editando: ${editando.nome}` : 'Novo responsável'}
             </h2>
-
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="sm:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Aluno vinculado *</label>
@@ -123,12 +119,10 @@ const desativar = async (id: string) => {
                   {alunos.map((a) => <option key={a.id} value={a.id}>{a.nome}</option>)}
                 </select>
               </div>
-
               <div className="sm:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Nome completo *</label>
                 <input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} required className={campoClass} />
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Parentesco *</label>
                 <select value={form.parentesco} onChange={(e) => setForm({ ...form, parentesco: e.target.value })} required className={campoClass}>
@@ -143,27 +137,22 @@ const desativar = async (id: string) => {
                   <option>Outro</option>
                 </select>
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Telefone principal</label>
                 <input value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} placeholder="(00) 00000-0000" className={campoClass} />
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Telefone alternativo</label>
                 <input value={form.telefone_alternativo} onChange={(e) => setForm({ ...form, telefone_alternativo: e.target.value })} placeholder="(00) 00000-0000" className={campoClass} />
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
                 <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className={campoClass} />
               </div>
-
               <div className="sm:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Endereço</label>
                 <input value={form.endereco} onChange={(e) => setForm({ ...form, endereco: e.target.value })} className={campoClass} />
               </div>
-
               <div className="sm:col-span-2 flex items-center gap-2">
                 <input
                   type="checkbox"
@@ -175,7 +164,6 @@ const desativar = async (id: string) => {
                 <label htmlFor="resp_principal" className="text-sm text-gray-700">Responsável principal pelo aluno</label>
               </div>
             </div>
-
             <div className="flex justify-end gap-3">
               <button type="button" onClick={cancelar} className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700">
                 Cancelar
@@ -208,6 +196,15 @@ const desativar = async (id: string) => {
                 <tbody className="divide-y divide-gray-100">
                   {responsaveis.map((r) => (
                     <tr key={r.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 font-medium text-gray-800">{r.nome}</td>
+                      <td className="px-4 py-3 text-gray-500">{r.alunos?.nome || '—'}</td>
+                      <td className="px-4 py-3 text-gray-500">{r.parentesco}</td>
+                      <td className="px-4 py-3 text-gray-500">{r.telefone || '—'}</td>
+                      <td className="px-4 py-3">
+                        {r.responsavel_principal
+                          ? <span className="text-green-600 text-xs font-medium">✓ Sim</span>
+                          : <span className="text-gray-400 text-xs">—</span>}
+                      </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           <button onClick={() => abrirEditar(r)} className="text-gray-500 hover:text-gray-700 hover:underline text-xs">
