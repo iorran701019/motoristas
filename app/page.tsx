@@ -68,7 +68,7 @@ export default function Home() {
     {
       href: '/cuidadores',
       icon: '🤝',
-      titulo: 'Cuidadores',
+      titulo: 'Agentes de Apoio',
       desc: 'Auxiliares e cuidadores vinculados aos alunos'
     },
     {
