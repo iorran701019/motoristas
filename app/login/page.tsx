@@ -61,7 +61,7 @@ export default function Login() {
             <span className="text-white text-2xl">🎓</span>
           </div>
           <h1 className="text-2xl font-bold text-gray-800">Educação Especial CEMAE</h1>
-          <p className="text-gray-500 text-sm mt-1">Sistema de Gestão AEE</p>
+          <p className="text-gray-500 text-sm mt-1">Sistema de Gestão</p>
         </div>
 
         <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
