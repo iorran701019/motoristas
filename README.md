@@ -1,39 +1,139 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Rotas Motoristas — SME
 
-## Getting Started
+Sistema web para gerenciamento de rotas e motoristas da Secretaria Municipal de Educação.
 
-First, run the development server:
+## Stack
+
+| Camada      | Tecnologia                          |
+| ----------- | ----------------------------------- |
+| Frontend    | React 18 + TypeScript + TailwindCSS |
+| Formulários | React Hook Form + Zod               |
+| Tabela      | TanStack Table                      |
+| Calendário  | FullCalendar                        |
+| Ícones      | Lucide React                        |
+| UI          | Componentes estilo shadcn/ui        |
+| Backend     | Supabase (PostgreSQL)               |
+| Hospedagem  | Vercel                              |
+
+## Funcionalidades (MVP)
+
+- **Cadastro de Rotas** — formulário completo com validação e envio ao Supabase
+- **Dashboard** — cards de resumo, tabela com busca/ordenação/filtros e agenda (dia/semana/mês)
+- **Modal de detalhes** — ao clicar em evento do calendário ou linha da tabela
+- **Layout administrativo** — sidebar, header, cores institucionais, responsivo
+
+## Estrutura do projeto
+
+```
+src/
+├── components/
+│   ├── dashboard/    # StatsCards, RotasTable, RotasCalendar, modal
+│   ├── layout/       # Sidebar, Header, AppLayout
+│   ├── rotas/        # RotaForm
+│   └── ui/           # Button, Input, Card, Dialog, Toast...
+├── context/          # RotasProvider (dados globais)
+├── hooks/            # useRotas, useToast
+├── lib/              # supabase, utils, validations
+├── pages/            # CadastroPage, DashboardPage
+└── types/            # RotaMotorista, DashboardStats
+supabase/migrations/  # SQL da tabela rotas_motoristas
+```
+
+## Pré-requisitos
+
+- Node.js 18+
+- Conta no [Supabase](https://supabase.com)
+- Conta na [Vercel](https://vercel.com) (para deploy)
+
+## Instalação local
+
+### 1. Clonar e instalar dependências
+
+```bash
+cd educacao-especial
+npm install
+```
+
+### 2. Configurar Supabase
+
+1. Crie um projeto em [supabase.com](https://supabase.com)
+2. No **SQL Editor**, execute o arquivo:
+
+   `supabase/migrations/001_rotas_motoristas.sql`
+
+3. Em **Project Settings → API**, copie:
+   - Project URL
+   - `anon` public key
+
+### 3. Variáveis de ambiente
+
+```bash
+cp .env.example .env
+```
+
+Edite `.env`:
+
+```env
+VITE_SUPABASE_URL=https://xxxx.supabase.co
+VITE_SUPABASE_ANON_KEY=sua-chave-anon
+```
+
+### 4. Executar em desenvolvimento
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Acesse: http://localhost:5173
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 5. Build de produção
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run build
+npm run preview
+```
 
-## Learn More
+## Deploy na Vercel
 
-To learn more about Next.js, take a look at the following resources:
+1. Importe o repositório na Vercel
+2. Framework Preset: **Vite**
+3. Adicione as variáveis de ambiente:
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+4. Deploy
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+O arquivo `vercel.json` já configura SPA routing.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Banco de dados
 
-## Deploy on Vercel
+Tabela: `rotas_motoristas`
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| Campo                    | Tipo        |
+| ------------------------ | ----------- |
+| id                       | UUID (PK)   |
+| motorista                | TEXT        |
+| data                     | DATE        |
+| placa_veiculo            | TEXT        |
+| tipo_veiculo             | TEXT        |
+| rota_descricao           | TEXT        |
+| destino_principal        | TEXT        |
+| horario_saida            | TIME        |
+| horario_retorno          | TIME        |
+| qtd_passageiros          | INTEGER     |
+| responsavel_solicitacao  | TEXT        |
+| observacoes              | TEXT (null) |
+| created_at               | TIMESTAMPTZ |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-// rebuild
-// rebuild
-// rebuild
+> **Segurança:** As políticas RLS atuais permitem acesso público (MVP interno). Ao implementar autenticação, substitua pelas políticas baseadas em `auth.uid()` e perfis de permissão.
+
+## Expansões futuras preparadas
+
+- Autenticação via `supabase.auth` (badge "Acesso interno" no header)
+- Políticas RLS por perfil (admin, operador, visualizador)
+- Autocomplete avançado de placas (datalist já incluído)
+- CRUD de edição/exclusão de rotas
+- Exportação para planilha/PDF
+
+## Licença
+
+Uso interno — Secretaria Municipal de Educação.
