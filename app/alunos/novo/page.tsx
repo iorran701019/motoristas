@@ -1,8 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
+
+type Escola = { id: string; nome: string }
 
 const tiposDeficiencia = [
   'Deficiência Intelectual',
@@ -28,8 +30,10 @@ export default function CadastroAluno() {
   const [loading, setLoading] = useState(false)
   const [erro, setErro] = useState('')
   const [sucesso, setSucesso] = useState(false)
+  const [escolas, setEscolas] = useState<Escola[]>([])
   const [form, setForm] = useState({
     nome: '',
+    escola_id: '',
     data_nascimento: '',
     cpf: '',
     numero_matricula: '',
@@ -48,6 +52,11 @@ export default function CadastroAluno() {
     obs_judicializacao: '',
   })
 
+  useEffect(() => {
+    supabase.from('escolas').select('id, nome').eq('ativo', true).order('nome')
+      .then(({ data }) => setEscolas(data || []))
+  }, [])
+
   const handleChange = (e: any) => {
     const { name, value, type, checked } = e.target
     setForm((prev) => ({ ...prev, [name]: type === 'checkbox' ? checked : value }))
@@ -57,7 +66,8 @@ export default function CadastroAluno() {
     e.preventDefault()
     setLoading(true)
     setErro('')
-    const { error } = await supabase.from('alunos').insert([form])
+    const payload = { ...form, escola_id: form.escola_id || null }
+    const { error } = await supabase.from('alunos').insert([payload])
     if (error) {
       setErro('Erro ao salvar: ' + error.message)
     } else {
@@ -103,6 +113,13 @@ export default function CadastroAluno() {
             <div className="sm:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">Nome completo *</label>
               <input name="nome" value={form.nome} onChange={handleChange} required className={campoClass} />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Escola *</label>
+              <select name="escola_id" value={form.escola_id} onChange={handleChange} required className={campoClass}>
+                <option value="">Selecione a escola...</option>
+                {escolas.map((e) => <option key={e.id} value={e.id}>{e.nome}</option>)}
+              </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Data de nascimento</label>
