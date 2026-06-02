@@ -20,7 +20,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { formatDateBR, formatTime } from '@/lib/utils'
+import { Badge } from '@/components/ui/badge'
+import { formatDateBR, formatTime, getStatusClasses } from '@/lib/utils'
 import type { RotaMotorista } from '@/types/rota'
 
 interface RotasTableProps {
@@ -66,6 +67,13 @@ export function RotasTable({ rotas, onRowClick }: RotasTableProps) {
         cell: ({ row }) => formatDateBR(row.original.data),
       },
       { accessorKey: 'motorista', header: 'Motorista' },
+      {
+        accessorKey: 'status',
+        header: 'Status',
+        cell: ({ row }) => (
+          <Badge className={getStatusClasses(row.original.status)}>{row.original.status}</Badge>
+        ),
+      },
       { accessorKey: 'placa_veiculo', header: 'Placa' },
       { accessorKey: 'destino_principal', header: 'Destino' },
       {
@@ -99,6 +107,7 @@ export function RotasTable({ rotas, onRowClick }: RotasTableProps) {
       return (
         r.motorista.toLowerCase().includes(search) ||
         r.destino_principal.toLowerCase().includes(search) ||
+        r.status.toLowerCase().includes(search) ||
         r.placa_veiculo.toLowerCase().includes(search) ||
         r.rota_descricao.toLowerCase().includes(search) ||
         r.responsavel_solicitacao.toLowerCase().includes(search)

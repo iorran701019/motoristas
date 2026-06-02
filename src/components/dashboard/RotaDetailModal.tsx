@@ -5,7 +5,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { formatDateBR, formatTime } from '@/lib/utils'
+import { Badge } from '@/components/ui/badge'
+import { formatDateBR, formatTime, getStatusClasses } from '@/lib/utils'
 import type { RotaMotorista } from '@/types/rota'
 
 interface RotaDetailModalProps {
@@ -28,6 +29,7 @@ export function RotaDetailModal({ rota, open, onOpenChange }: RotaDetailModalPro
     { label: 'Horário de Saída', value: formatTime(rota.horario_saida) },
     { label: 'Horário de Retorno', value: formatTime(rota.horario_retorno) },
     { label: 'Passageiros', value: String(rota.qtd_passageiros) },
+    { label: 'Status', value: rota.status },
     { label: 'Responsável', value: rota.responsavel_solicitacao },
     { label: 'Observações', value: rota.observacoes || '—' },
   ]
@@ -48,7 +50,13 @@ export function RotaDetailModal({ rota, open, onOpenChange }: RotaDetailModalPro
               <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 {label}
               </dt>
-              <dd className="mt-0.5 text-sm text-foreground">{value}</dd>
+              <dd className="mt-0.5 text-sm text-foreground">
+                {label === 'Status' ? (
+                  <Badge className={getStatusClasses(rota.status)}>{rota.status}</Badge>
+                ) : (
+                  value
+                )}
+              </dd>
             </div>
           ))}
         </dl>

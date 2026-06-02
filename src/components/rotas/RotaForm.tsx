@@ -18,6 +18,7 @@ import { useRotasContext } from '@/context/RotasContext'
 import { useToast } from '@/hooks/use-toast'
 import { rotaFormSchema, type RotaFormValues } from '@/lib/validations/rota'
 import { todayISO } from '@/lib/utils'
+import { STATUS_OPTIONS } from '@/types/rota'
 
 const TIPOS_VEICULO = [
   'Van',
@@ -38,6 +39,7 @@ const defaultValues: RotaFormValues = {
   horario_saida: '',
   horario_retorno: '',
   qtd_passageiros: 0,
+  status: 'Agendada',
   responsavel_solicitacao: '',
   observacoes: '',
 }
@@ -65,6 +67,7 @@ export function RotaForm({ placasExistentes = [] }: RotaFormProps) {
   })
 
   const tipoVeiculo = watch('tipo_veiculo')
+  const status = watch('status')
 
   // datalist para autocomplete de placas (extensível)
   const placasUnicas = useMemo(
@@ -83,6 +86,7 @@ export function RotaForm({ placasExistentes = [] }: RotaFormProps) {
       horario_saida: values.horario_saida,
       horario_retorno: values.horario_retorno,
       qtd_passageiros: values.qtd_passageiros,
+      status: values.status,
       responsavel_solicitacao: values.responsavel_solicitacao.trim(),
       observacoes: values.observacoes?.trim() || null,
     })
@@ -210,8 +214,8 @@ export function RotaForm({ placasExistentes = [] }: RotaFormProps) {
             {fieldError('destino_principal')}
           </div>
 
-          {/* Linha 3: Horários e Passageiros */}
-          <div className="grid gap-4 md:grid-cols-4">
+          {/* Linha 3: Horários, Passageiros e Status */}
+          <div className="grid gap-4 md:grid-cols-5">
             <div className="space-y-2">
               <Label htmlFor="horario_saida">
                 Horário de Saída <span className="text-destructive">*</span>
@@ -239,6 +243,25 @@ export function RotaForm({ placasExistentes = [] }: RotaFormProps) {
                 {...register('qtd_passageiros')}
               />
               {fieldError('qtd_passageiros')}
+            </div>
+
+            <div className="space-y-2">
+              <Label>
+                Status da Rota <span className="text-destructive">*</span>
+              </Label>
+              <Select value={status} onValueChange={(v) => setValue('status', v as RotaFormValues['status'], { shouldValidate: true })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {STATUS_OPTIONS.map((statusOption) => (
+                    <SelectItem key={statusOption} value={statusOption}>
+                      {statusOption}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {fieldError('status')}
             </div>
 
             <div className="space-y-2">

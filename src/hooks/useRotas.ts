@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase, TABLE_ROTAS } from '@/lib/supabase'
+import { getSupabaseConfig } from '@/lib/supabase-config'
 import { todayISO } from '@/lib/utils'
 import type { DashboardStats, RotaMotorista, RotaMotoristaInsert } from '@/types/rota'
 
@@ -37,6 +38,16 @@ export function useRotas(): UseRotasReturn {
   const fetchRotas = useCallback(async () => {
     setLoading(true)
     setError(null)
+
+    const config = getSupabaseConfig()
+    if (!config.isConfigured) {
+      setError(
+        'Configure o arquivo .env com VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY, depois reinicie npm run dev'
+      )
+      setRotas([])
+      setLoading(false)
+      return
+    }
 
     const { data, error: fetchError } = await supabase
       .from(TABLE_ROTAS)

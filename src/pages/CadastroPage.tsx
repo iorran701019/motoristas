@@ -1,7 +1,9 @@
 import { useMemo } from 'react'
 import { AlertCircle } from 'lucide-react'
 import { RotaForm } from '@/components/rotas/RotaForm'
+import { SupabaseConfigAlert } from '@/components/SupabaseConfigAlert'
 import { useRotasContext } from '@/context/RotasContext'
+import { getSupabaseConfig } from '@/lib/supabase-config'
 
 /** Tela 1 — Cadastro de Rotas */
 export function CadastroPage() {
@@ -12,9 +14,13 @@ export function CadastroPage() {
     [rotas]
   )
 
+  const configOk = getSupabaseConfig().isConfigured
+
   return (
     <div className="space-y-4">
-      {error && (
+      <SupabaseConfigAlert />
+
+      {error && configOk && (
         <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           <AlertCircle className="h-4 w-4 shrink-0" />
           <span>

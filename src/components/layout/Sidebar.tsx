@@ -1,24 +1,28 @@
 import { NavLink } from 'react-router-dom'
 import {
+  ShieldCheck,
   Bus,
   LayoutDashboard,
   Route,
   X,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/context/AuthContext'
 
 interface SidebarProps {
   open: boolean
   onClose: () => void
 }
 
-const navItems = [
-  { to: '/', label: 'Cadastro de Rotas', icon: Route },
-  { to: '/dashboard', label: 'Painel / Dashboard', icon: LayoutDashboard },
-]
-
 /** Barra lateral de navegação — responsiva com overlay em mobile */
 export function Sidebar({ open, onClose }: SidebarProps) {
+  const { isAdmin } = useAuth()
+  const navItems = [
+    { to: '/', label: 'Cadastro de Rotas', icon: Route },
+    { to: '/dashboard', label: 'Painel / Dashboard', icon: LayoutDashboard },
+    ...(isAdmin ? [{ to: '/admin', label: 'Administração', icon: ShieldCheck }] : []),
+  ]
+
   return (
     <>
       {open && (

@@ -15,10 +15,13 @@ Sistema web para gerenciamento de rotas e motoristas da Secretaria Municipal de 
 | Backend     | Supabase (PostgreSQL)               |
 | Hospedagem  | Vercel                              |
 
-## Funcionalidades (MVP)
+## Funcionalidades (MVP V2)
 
 - **Cadastro de Rotas** — formulário completo com validação e envio ao Supabase
-- **Dashboard** — cards de resumo, tabela com busca/ordenação/filtros e agenda (dia/semana/mês)
+- **Dashboard** — calendário no topo + histórico abaixo, filtros por motorista e rota, tabela com busca/ordenação/filtros
+- **Status logístico** — Agendada, Executada, Cancelada, Adiada (badge na tabela e cor no calendário)
+- **Autenticação fechada** — login por e-mail/senha sem auto-cadastro e sem recuperação de senha na UI
+- **Administração** — rota protegida para gestão de usuários (via Edge Function)
 - **Modal de detalhes** — ao clicar em evento do calendário ou linha da tabela
 - **Layout administrativo** — sidebar, header, cores institucionais, responsivo
 
@@ -57,9 +60,10 @@ npm install
 ### 2. Configurar Supabase
 
 1. Crie um projeto em [supabase.com](https://supabase.com)
-2. No **SQL Editor**, execute o arquivo:
+2. No **SQL Editor**, execute os arquivos:
 
    `supabase/migrations/001_rotas_motoristas.sql`
+   `supabase/migrations/002_auth_status_admin.sql`
 
 3. Em **Project Settings → API**, copie:
    - Project URL
@@ -120,16 +124,24 @@ Tabela: `rotas_motoristas`
 | horario_saida            | TIME        |
 | horario_retorno          | TIME        |
 | qtd_passageiros          | INTEGER     |
+| status                   | TEXT        |
 | responsavel_solicitacao  | TEXT        |
 | observacoes              | TEXT (null) |
 | created_at               | TIMESTAMPTZ |
 
-> **Segurança:** As políticas RLS atuais permitem acesso público (MVP interno). Ao implementar autenticação, substitua pelas políticas baseadas em `auth.uid()` e perfis de permissão.
+### Autenticação e permissões
+
+- A migration V2 fecha o acesso da tabela para usuários autenticados.
+- A tabela `app_user_roles` define perfis (`admin`, `operador`).
+- A rota `/admin` fica visível apenas para admins.
+
+### Observação importante sobre gestão de usuários
+
+As ações de **criar usuário** e **resetar senha de outro usuário** usam `supabase.functions.invoke('admin-users')`, que exige uma Edge Function com Service Role no backend.
 
 ## Expansões futuras preparadas
 
-- Autenticação via `supabase.auth` (badge "Acesso interno" no header)
-- Políticas RLS por perfil (admin, operador, visualizador)
+- Políticas RLS mais granulares por secretaria/unidade
 - Autocomplete avançado de placas (datalist já incluído)
 - CRUD de edição/exclusão de rotas
 - Exportação para planilha/PDF

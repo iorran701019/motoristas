@@ -1,4 +1,7 @@
 /** Registro de rota conforme tabela rotas_motoristas no Supabase */
+export const STATUS_OPTIONS = ['Agendada', 'Executada', 'Cancelada', 'Adiada'] as const
+export type RotaStatus = (typeof STATUS_OPTIONS)[number]
+
 export interface RotaMotorista {
   id: string
   motorista: string
@@ -10,6 +13,7 @@ export interface RotaMotorista {
   horario_saida: string
   horario_retorno: string
   qtd_passageiros: number
+  status: RotaStatus
   responsavel_solicitacao: string
   observacoes: string | null
   created_at: string
@@ -24,4 +28,12 @@ export interface DashboardStats {
   totalMotoristas: number
   rotasHoje: number
   totalPassageiros: number
+}
+
+export interface AuthUserSummary {
+  id: string
+  email: string
+  created_at: string
+  last_sign_in_at: string | null
+  is_admin: boolean
 }

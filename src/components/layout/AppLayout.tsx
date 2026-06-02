@@ -10,7 +10,11 @@ const pageTitles: Record<string, { title: string; subtitle: string }> = {
   },
   '/dashboard': {
     title: 'Painel Administrativo',
-    subtitle: 'Visão geral, tabela e agenda de rotas',
+    subtitle: 'Agenda de rotas no topo e histórico abaixo',
+  },
+  '/admin': {
+    title: 'Administração',
+    subtitle: 'Gestão de usuários e senhas do sistema',
   },
 }
 
