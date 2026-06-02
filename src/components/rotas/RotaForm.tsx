@@ -1,9 +1,17 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Loader2, Plus } from 'lucide-react'
+import { AlertTriangle, Loader2, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -18,7 +26,7 @@ import { useRotasContext } from '@/context/RotasContext'
 import { useToast } from '@/hooks/use-toast'
 import { rotaFormSchema, type RotaFormValues } from '@/lib/validations/rota'
 import { formatDateBR, formatTime, intervalosSobrepoem, todayISO } from '@/lib/utils'
-import type { Motorista, Veiculo } from '@/types/rota'
+import type { Motorista, RotaMotorista, RotaMotoristaInsert, Veiculo } from '@/types/rota'
 
 const defaultValues: RotaFormValues = {
   motorista: '',
@@ -42,8 +50,13 @@ interface RotaFormProps {
 
 /** Formulário de cadastro de rotas inspirado na planilha SME */
 export function RotaForm({ motoristas = [], veiculos = [] }: RotaFormProps) {
-  const { rotas, createRota } = useRotasContext()
+  const { rotas, createRota, updateRota } = useRotasContext()
   const { toast } = useToast()
+
+  // Estado do pop-up de conflito de horário
+  const [conflito, setConflito] = useState<RotaMotorista | null>(null)
+  const [pendingPayload, setPendingPayload] = useState<RotaMotoristaInsert | null>(null)
+  const [substituindo, setSubstituindo] = useState(false)
 
   const {
     register,
@@ -62,6 +75,37 @@ export function RotaForm({ motoristas = [], veiculos = [] }: RotaFormProps) {
 
   const semCadastros = motoristas.length === 0 || veiculos.length === 0
 
+  const limparForm = () => reset({ ...defaultValues, data: todayISO() })
+
+  const buildPayload = (values: RotaFormValues): RotaMotoristaInsert => ({
+    motorista: values.motorista.trim(),
+    data: values.data,
+    placa_veiculo: values.placa_veiculo,
+    rota_descricao: values.rota_descricao.trim(),
+    destino_principal: values.destino_principal.trim(),
+    horario_saida: values.horario_saida,
+    horario_retorno: values.horario_retorno,
+    qtd_passageiros: values.qtd_passageiros,
+    // Toda rota nasce Agendada; status muda no Histórico de trajetos.
+    status: 'Agendada',
+    responsavel_solicitacao: values.responsavel_solicitacao.trim(),
+    observacoes: values.observacoes?.trim() || null,
+  })
+
+  const salvarNovo = async (payload: RotaMotoristaInsert) => {
+    const { error } = await createRota(payload)
+    if (error) {
+      toast({ variant: 'destructive', title: 'Erro ao salvar', description: error })
+      return
+    }
+    toast({
+      variant: 'success',
+      title: 'Registro salvo com sucesso!',
+      description: `Rota de ${payload.motorista} em ${payload.data} foi cadastrada.`,
+    })
+    limparForm()
+  }
+
   const onSubmit = async (values: RotaFormValues) => {
     // Horário de retorno precisa ser depois da saída
     if (formatTime(values.horario_retorno) <= formatTime(values.horario_saida)) {
@@ -73,9 +117,11 @@ export function RotaForm({ motoristas = [], veiculos = [] }: RotaFormProps) {
       return
     }
 
+    const payload = buildPayload(values)
+
     // Verifica conflito de horário do mesmo motorista na mesma data
     // (ignora rotas canceladas, que não ocupam a agenda).
-    const conflito = rotas.find(
+    const rotaConflitante = rotas.find(
       (r) =>
         r.status !== 'Cancelada' &&
         r.data === values.data &&
@@ -88,47 +134,39 @@ export function RotaForm({ motoristas = [], veiculos = [] }: RotaFormProps) {
         )
     )
 
-    if (conflito) {
-      const prosseguir = window.confirm(
-        `Conflito de horário: ${conflito.motorista} já tem uma rota em ` +
-          `${formatDateBR(conflito.data)} das ${formatTime(conflito.horario_saida)} ` +
-          `às ${formatTime(conflito.horario_retorno)} (${conflito.rota_descricao}).\n\n` +
-          `Deseja cadastrar mesmo assim?`
-      )
-      if (!prosseguir) return
-    }
-
-    const { error } = await createRota({
-      motorista: values.motorista.trim(),
-      data: values.data,
-      placa_veiculo: values.placa_veiculo,
-      rota_descricao: values.rota_descricao.trim(),
-      destino_principal: values.destino_principal.trim(),
-      horario_saida: values.horario_saida,
-      horario_retorno: values.horario_retorno,
-      qtd_passageiros: values.qtd_passageiros,
-      // Toda rota nasce Agendada; status muda no Histórico de trajetos.
-      status: 'Agendada',
-      responsavel_solicitacao: values.responsavel_solicitacao.trim(),
-      observacoes: values.observacoes?.trim() || null,
-    })
-
-    if (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Erro ao salvar',
-        description: error,
-      })
+    if (rotaConflitante) {
+      // Abre o pop-up para o usuário decidir: cancelar ou substituir
+      setConflito(rotaConflitante)
+      setPendingPayload(payload)
       return
     }
 
+    await salvarNovo(payload)
+  }
+
+  const fecharDialogo = () => {
+    setConflito(null)
+    setPendingPayload(null)
+  }
+
+  // "Substituir o antigo": sobrescreve a rota conflitante com os novos dados
+  const handleSubstituir = async () => {
+    if (!conflito || !pendingPayload) return
+    setSubstituindo(true)
+    const { error } = await updateRota(conflito.id, pendingPayload)
+    setSubstituindo(false)
+
+    if (error) {
+      toast({ variant: 'destructive', title: 'Erro ao substituir', description: error })
+      return
+    }
     toast({
       variant: 'success',
-      title: 'Registro salvo com sucesso!',
-      description: `Rota de ${values.motorista} em ${values.data} foi cadastrada.`,
+      title: 'Rota substituída',
+      description: `A rota anterior de ${pendingPayload.motorista} foi atualizada.`,
     })
-
-    reset({ ...defaultValues, data: todayISO() })
+    fecharDialogo()
+    limparForm()
   }
 
   const fieldError = (name: keyof RotaFormValues) =>
@@ -315,6 +353,63 @@ export function RotaForm({ motoristas = [], veiculos = [] }: RotaFormProps) {
           </div>
         </form>
       </CardContent>
+
+      {/* Pop-up de conflito de horário */}
+      <Dialog open={conflito !== null} onOpenChange={(open) => !open && fecharDialogo()}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-amber-700">
+              <AlertTriangle className="h-5 w-5" />
+              Conflito de horário
+            </DialogTitle>
+            <DialogDescription>
+              Este motorista já tem uma rota que se sobrepõe a este horário.
+            </DialogDescription>
+          </DialogHeader>
+
+          {conflito && pendingPayload && (
+            <div className="space-y-3 text-sm">
+              <div className="rounded-md border border-amber-200 bg-amber-50 p-3">
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-amber-700">
+                  Rota já existente
+                </p>
+                <p className="font-medium">{conflito.motorista}</p>
+                <p className="text-muted-foreground">
+                  {formatDateBR(conflito.data)} · {formatTime(conflito.horario_saida)} às{' '}
+                  {formatTime(conflito.horario_retorno)}
+                </p>
+                <p className="text-muted-foreground">
+                  {conflito.rota_descricao} → {conflito.destino_principal}
+                </p>
+              </div>
+
+              <div className="rounded-md border bg-muted/30 p-3">
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Novo cadastro
+                </p>
+                <p className="font-medium">{pendingPayload.motorista}</p>
+                <p className="text-muted-foreground">
+                  {formatDateBR(pendingPayload.data)} · {formatTime(pendingPayload.horario_saida)}{' '}
+                  às {formatTime(pendingPayload.horario_retorno)}
+                </p>
+                <p className="text-muted-foreground">
+                  {pendingPayload.rota_descricao} → {pendingPayload.destino_principal}
+                </p>
+              </div>
+            </div>
+          )}
+
+          <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+            <Button variant="outline" onClick={fecharDialogo} disabled={substituindo}>
+              Cancelar novo cadastro
+            </Button>
+            <Button onClick={handleSubstituir} disabled={substituindo}>
+              {substituindo ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Substituir o antigo
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   )
 }

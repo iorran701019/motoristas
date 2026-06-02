@@ -14,6 +14,7 @@ interface RotasContextValue {
   error: string | null
   refetch: () => Promise<void>
   createRota: (data: RotaMotoristaInsert) => Promise<{ error: string | null }>
+  updateRota: (id: string, data: RotaMotoristaInsert) => Promise<{ error: string | null }>
   updateRotaStatus: (id: string, status: RotaStatus) => Promise<{ error: string | null }>
 }
 

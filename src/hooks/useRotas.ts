@@ -16,6 +16,7 @@ interface UseRotasReturn {
   error: string | null
   refetch: () => Promise<void>
   createRota: (data: RotaMotoristaInsert) => Promise<{ error: string | null }>
+  updateRota: (id: string, data: RotaMotoristaInsert) => Promise<{ error: string | null }>
   updateRotaStatus: (id: string, status: RotaStatus) => Promise<{ error: string | null }>
 }
 
@@ -86,6 +87,20 @@ export function useRotas(): UseRotasReturn {
     return { error: null }
   }
 
+  const updateRota = async (id: string, payload: RotaMotoristaInsert) => {
+    const { error: updateError } = await supabase
+      .from(TABLE_ROTAS)
+      .update(payload)
+      .eq('id', id)
+
+    if (updateError) {
+      return { error: updateError.message }
+    }
+
+    await fetchRotas()
+    return { error: null }
+  }
+
   const updateRotaStatus = async (id: string, status: RotaStatus) => {
     // Atualização otimista para resposta imediata no dropdown
     setRotas((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)))
@@ -110,6 +125,7 @@ export function useRotas(): UseRotasReturn {
     error,
     refetch: fetchRotas,
     createRota,
+    updateRota,
     updateRotaStatus,
   }
 }
