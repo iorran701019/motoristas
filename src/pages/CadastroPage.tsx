@@ -1,18 +1,14 @@
-import { useMemo } from 'react'
 import { AlertCircle } from 'lucide-react'
 import { RotaForm } from '@/components/rotas/RotaForm'
 import { SupabaseConfigAlert } from '@/components/SupabaseConfigAlert'
 import { useRotasContext } from '@/context/RotasContext'
+import { useCadastrosContext } from '@/context/CadastrosContext'
 import { getSupabaseConfig } from '@/lib/supabase-config'
 
 /** Tela 1 — Cadastro de Rotas */
 export function CadastroPage() {
-  const { rotas, loading, error } = useRotasContext()
-
-  const placasExistentes = useMemo(
-    () => rotas.map((r) => r.placa_veiculo),
-    [rotas]
-  )
+  const { loading, error } = useRotasContext()
+  const { motoristas, veiculos } = useCadastrosContext()
 
   const configOk = getSupabaseConfig().isConfigured
 
@@ -34,7 +30,7 @@ export function CadastroPage() {
         <p className="text-sm text-muted-foreground">Carregando dados...</p>
       ) : null}
 
-      <RotaForm placasExistentes={placasExistentes} />
+      <RotaForm motoristas={motoristas} veiculos={veiculos} />
     </div>
   )
 }

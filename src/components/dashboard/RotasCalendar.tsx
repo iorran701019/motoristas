@@ -12,7 +12,6 @@ interface RotasCalendarProps {
   rotas: RotaMotorista[]
   onEventClick: (rota: RotaMotorista) => void
   activeMotorista?: string
-  activeRota?: string
 }
 
 /** Converte registro de rota em evento FullCalendar */
@@ -33,7 +32,7 @@ function rotaToEvent(rota: RotaMotorista): EventInput {
 }
 
 /** Agenda estilo Google Calendar com visões dia/semana/mês */
-export function RotasCalendar({ rotas, onEventClick, activeMotorista, activeRota }: RotasCalendarProps) {
+export function RotasCalendar({ rotas, onEventClick, activeMotorista }: RotasCalendarProps) {
   const events = useMemo(() => rotas.map(rotaToEvent), [rotas])
 
   const handleEventClick = (info: EventClickArg) => {
@@ -76,8 +75,9 @@ export function RotasCalendar({ rotas, onEventClick, activeMotorista, activeRota
           if (!rota) return null
 
           const isActive =
-            (activeMotorista === undefined || activeMotorista === 'todos' || rota.motorista === activeMotorista) &&
-            (activeRota === undefined || activeRota === 'todas' || rota.rota_descricao === activeRota)
+            activeMotorista === undefined ||
+            activeMotorista === 'todos' ||
+            rota.motorista === activeMotorista
 
           return (
             <div className={`overflow-hidden px-1 py-0.5 text-xs leading-tight ${isActive ? '' : 'opacity-60'}`}>

@@ -59,3 +59,33 @@
 .fc-event {
   cursor: pointer;
 }
+
+/* Impressão de relatórios — mostra somente #relatorio-print */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  #relatorio-print,
+  #relatorio-print * {
+    visibility: visible;
+  }
+
+  #relatorio-print {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    border: none;
+    padding: 0;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  /* Garante que as cores dos badges saiam na impressão */
+  #relatorio-print * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2, Plus } from 'lucide-react'
@@ -18,16 +18,7 @@ import { useRotasContext } from '@/context/RotasContext'
 import { useToast } from '@/hooks/use-toast'
 import { rotaFormSchema, type RotaFormValues } from '@/lib/validations/rota'
 import { todayISO } from '@/lib/utils'
-import { STATUS_OPTIONS } from '@/types/rota'
-
-const TIPOS_VEICULO = [
-  'Van',
-  'Micro-ônibus',
-  'Ônibus',
-  'Carro',
-  'Utilitário',
-  'Outro',
-]
+import type { Motorista, Veiculo } from '@/types/rota'
 
 const defaultValues: RotaFormValues = {
   motorista: '',
@@ -39,18 +30,19 @@ const defaultValues: RotaFormValues = {
   horario_saida: '',
   horario_retorno: '',
   qtd_passageiros: 0,
-  status: 'Agendada',
   responsavel_solicitacao: '',
   observacoes: '',
 }
 
 interface RotaFormProps {
-  /** Placas já cadastradas — base para autocomplete futuro */
-  placasExistentes?: string[]
+  /** Motoristas cadastrados — base do seletor de motorista */
+  motoristas?: Motorista[]
+  /** Veículos cadastrados — base do seletor de placa */
+  veiculos?: Veiculo[]
 }
 
 /** Formulário de cadastro de rotas inspirado na planilha SME */
-export function RotaForm({ placasExistentes = [] }: RotaFormProps) {
+export function RotaForm({ motoristas = [], veiculos = [] }: RotaFormProps) {
   const { createRota } = useRotasContext()
   const { toast } = useToast()
 
@@ -66,14 +58,17 @@ export function RotaForm({ placasExistentes = [] }: RotaFormProps) {
     defaultValues,
   })
 
+  const motoristaSelecionado = watch('motorista')
+  const placaSelecionada = watch('placa_veiculo')
   const tipoVeiculo = watch('tipo_veiculo')
-  const status = watch('status')
 
-  // datalist para autocomplete de placas (extensível)
-  const placasUnicas = useMemo(
-    () => [...new Set(placasExistentes.map((p) => p.toUpperCase()))].sort(),
-    [placasExistentes]
-  )
+  const semCadastros = motoristas.length === 0 || veiculos.length === 0
+
+  const handlePlacaChange = (placa: string) => {
+    setValue('placa_veiculo', placa, { shouldValidate: true })
+    const veiculo = veiculos.find((v) => v.placa === placa)
+    setValue('tipo_veiculo', veiculo?.tipo ?? '', { shouldValidate: true })
+  }
 
   const onSubmit = async (values: RotaFormValues) => {
     const { error } = await createRota({
@@ -86,7 +81,8 @@ export function RotaForm({ placasExistentes = [] }: RotaFormProps) {
       horario_saida: values.horario_saida,
       horario_retorno: values.horario_retorno,
       qtd_passageiros: values.qtd_passageiros,
-      status: values.status,
+      // Toda rota nasce Agendada; status muda no Histórico de trajetos.
+      status: 'Agendada',
       responsavel_solicitacao: values.responsavel_solicitacao.trim(),
       observacoes: values.observacoes?.trim() || null,
     })
@@ -126,14 +122,38 @@ export function RotaForm({ placasExistentes = [] }: RotaFormProps) {
       </CardHeader>
 
       <CardContent className="pt-6">
+        {semCadastros && (
+          <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            Cadastre{' '}
+            <Link to="/cadastros" className="font-medium underline">
+              motoristas e veículos
+            </Link>{' '}
+            antes de registrar uma rota — eles aparecem nos campos de seleção abaixo.
+          </div>
+        )}
+
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* Linha 1: Motorista, Data, Placa */}
           <div className="grid gap-4 md:grid-cols-3">
             <div className="space-y-2">
-              <Label htmlFor="motorista">
+              <Label>
                 Motorista <span className="text-destructive">*</span>
               </Label>
-              <Input id="motorista" placeholder="Nome do motorista" {...register('motorista')} />
+              <Select
+                value={motoristaSelecionado}
+                onValueChange={(v) => setValue('motorista', v, { shouldValidate: true })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o motorista" />
+                </SelectTrigger>
+                <SelectContent>
+                  {motoristas.map((m) => (
+                    <SelectItem key={m.id} value={m.nome_completo}>
+                      {m.nome_completo} — {m.matricula}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               {fieldError('motorista')}
             </div>
 
@@ -146,46 +166,36 @@ export function RotaForm({ placasExistentes = [] }: RotaFormProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="placa_veiculo">
+              <Label>
                 Placa do Veículo <span className="text-destructive">*</span>
               </Label>
-              <Input
-                id="placa_veiculo"
-                list="placas-list"
-                placeholder="ABC1D23"
-                className="uppercase"
-                {...register('placa_veiculo')}
-              />
-              <datalist id="placas-list">
-                {placasUnicas.map((placa) => (
-                  <option key={placa} value={placa} />
-                ))}
-              </datalist>
-              {fieldError('placa_veiculo')}
-            </div>
-          </div>
-
-          {/* Linha 2: Tipo, Rota, Destino */}
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="space-y-2">
-              <Label>
-                Tipo de Veículo <span className="text-destructive">*</span>
-              </Label>
-              <Select
-                value={tipoVeiculo}
-                onValueChange={(v) => setValue('tipo_veiculo', v, { shouldValidate: true })}
-              >
+              <Select value={placaSelecionada} onValueChange={handlePlacaChange}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione o tipo" />
+                  <SelectValue placeholder="Selecione a placa" />
                 </SelectTrigger>
                 <SelectContent>
-                  {TIPOS_VEICULO.map((tipo) => (
-                    <SelectItem key={tipo} value={tipo}>
-                      {tipo}
+                  {veiculos.map((v) => (
+                    <SelectItem key={v.id} value={v.placa}>
+                      {v.placa} — {v.modelo} ({v.cor})
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {fieldError('placa_veiculo')}
+            </div>
+          </div>
+
+          {/* Linha 2: Tipo (derivado), Rota */}
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="space-y-2">
+              <Label htmlFor="tipo_veiculo">Tipo de Veículo</Label>
+              <Input
+                id="tipo_veiculo"
+                value={tipoVeiculo}
+                readOnly
+                placeholder="Definido pela placa"
+                className="bg-muted/50"
+              />
               {fieldError('tipo_veiculo')}
             </div>
 
@@ -214,8 +224,8 @@ export function RotaForm({ placasExistentes = [] }: RotaFormProps) {
             {fieldError('destino_principal')}
           </div>
 
-          {/* Linha 3: Horários, Passageiros e Status */}
-          <div className="grid gap-4 md:grid-cols-5">
+          {/* Linha 3: Horários, Passageiros e Responsável */}
+          <div className="grid gap-4 md:grid-cols-4">
             <div className="space-y-2">
               <Label htmlFor="horario_saida">
                 Horário de Saída <span className="text-destructive">*</span>
@@ -246,27 +256,8 @@ export function RotaForm({ placasExistentes = [] }: RotaFormProps) {
             </div>
 
             <div className="space-y-2">
-              <Label>
-                Status da Rota <span className="text-destructive">*</span>
-              </Label>
-              <Select value={status} onValueChange={(v) => setValue('status', v as RotaFormValues['status'], { shouldValidate: true })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o status" />
-                </SelectTrigger>
-                <SelectContent>
-                  {STATUS_OPTIONS.map((statusOption) => (
-                    <SelectItem key={statusOption} value={statusOption}>
-                      {statusOption}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {fieldError('status')}
-            </div>
-
-            <div className="space-y-2">
               <Label htmlFor="responsavel_solicitacao">
-                Responsável pela Solicitação <span className="text-destructive">*</span>
+                Responsável <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="responsavel_solicitacao"
@@ -287,7 +278,10 @@ export function RotaForm({ placasExistentes = [] }: RotaFormProps) {
             />
           </div>
 
-          <div className="flex justify-end border-t pt-4">
+          <div className="flex items-center justify-end gap-3 border-t pt-4">
+            <p className="mr-auto text-xs text-muted-foreground">
+              A rota será registrada com status <strong>Agendada</strong>.
+            </p>
             <Button type="submit" size="lg" disabled={isSubmitting} className="min-w-[200px]">
               {isSubmitting ? (
                 <>

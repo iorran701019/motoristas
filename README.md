@@ -15,14 +15,14 @@ Sistema web para gerenciamento de rotas e motoristas da Secretaria Municipal de 
 | Backend     | Supabase (PostgreSQL)               |
 | Hospedagem  | Vercel                              |
 
-## Funcionalidades (MVP V2)
+## Funcionalidades (V3)
 
-- **Cadastro de Rotas** — formulário completo com validação e envio ao Supabase
-- **Dashboard** — calendário no topo + histórico abaixo, filtros por motorista e rota, tabela com busca/ordenação/filtros
-- **Status logístico** — Agendada, Executada, Cancelada, Adiada (badge na tabela e cor no calendário)
+- **Cadastro de Rotas** — formulário com validação; motorista e placa são selecionados a partir dos cadastros; toda rota nasce com status **Agendada**
+- **Motoristas e Veículos** — aba de cadastro (nome/matrícula e placa/modelo/cor/tipo), acessível a todos os usuários; alimenta os seletores do cadastro de rota
+- **Dashboard** — calendário no topo (filtro por motorista) + histórico abaixo; o status é alterado direto na linha da tabela (Agendada/Concluída/Cancelada/Adiada)
+- **Relatórios** — geração e impressão (PDF/impressora) do histórico, filtrando por múltiplos status e período
 - **Autenticação fechada** — login por e-mail/senha sem auto-cadastro e sem recuperação de senha na UI
 - **Administração** — rota protegida para gestão de usuários (via Edge Function)
-- **Modal de detalhes** — ao clicar em evento do calendário ou linha da tabela
 - **Layout administrativo** — sidebar, header, cores institucionais, responsivo
 
 ## Estrutura do projeto
@@ -30,16 +30,19 @@ Sistema web para gerenciamento de rotas e motoristas da Secretaria Municipal de 
 ```
 src/
 ├── components/
-│   ├── dashboard/    # StatsCards, RotasTable, RotasCalendar, modal
+│   ├── cadastros/    # MotoristaForm, VeiculoForm
+│   ├── dashboard/    # RotasTable, RotasCalendar, modal
 │   ├── layout/       # Sidebar, Header, AppLayout
 │   ├── rotas/        # RotaForm
 │   └── ui/           # Button, Input, Card, Dialog, Toast...
-├── context/          # RotasProvider (dados globais)
-├── hooks/            # useRotas, useToast
+├── context/          # RotasProvider, CadastrosProvider, AuthProvider
+├── hooks/            # useRotas, useCadastros, useToast
 ├── lib/              # supabase, utils, validations
-├── pages/            # CadastroPage, DashboardPage
-└── types/            # RotaMotorista, DashboardStats
-supabase/migrations/  # SQL da tabela rotas_motoristas
+├── pages/            # Cadastro, Dashboard, Cadastros, Relatorio, Login, Admin
+└── types/            # RotaMotorista, Motorista, Veiculo, DashboardStats
+supabase/
+├── migrations/       # SQL do banco (rodar 001 → 004 em ordem)
+└── functions/        # Edge Function admin-users
 ```
 
 ## Pré-requisitos
@@ -65,6 +68,7 @@ npm install
    `supabase/migrations/001_rotas_motoristas.sql`
    `supabase/migrations/002_auth_status_admin.sql`
    `supabase/migrations/003_fix_rls_admin_function.sql`
+   `supabase/migrations/004_motoristas_veiculos_status.sql`
 
 3. Em **Project Settings → API**, copie:
    - Project URL
@@ -125,10 +129,16 @@ Tabela: `rotas_motoristas`
 | horario_saida            | TIME        |
 | horario_retorno          | TIME        |
 | qtd_passageiros          | INTEGER     |
-| status                   | TEXT        |
+| status                   | TEXT (Agendada / Concluída / Cancelada / Adiada) |
 | responsavel_solicitacao  | TEXT        |
 | observacoes              | TEXT (null) |
 | created_at               | TIMESTAMPTZ |
+
+Tabela: `motoristas` — `id` (UUID PK), `nome_completo` (TEXT), `matricula` (TEXT único), `created_at`.
+
+Tabela: `veiculos` — `id` (UUID PK), `placa` (TEXT único), `modelo` (TEXT), `cor` (TEXT), `tipo` (TEXT), `created_at`.
+
+Ambas têm RLS liberada para qualquer usuário autenticado (criadas na migration 004).
 
 ### Autenticação e permissões
 

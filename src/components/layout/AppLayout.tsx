@@ -12,6 +12,14 @@ const pageTitles: Record<string, { title: string; subtitle: string }> = {
     title: 'Painel Administrativo',
     subtitle: 'Agenda de rotas no topo e histórico abaixo',
   },
+  '/cadastros': {
+    title: 'Motoristas e Veículos',
+    subtitle: 'Cadastre motoristas e veículos usados nas rotas',
+  },
+  '/relatorio': {
+    title: 'Relatórios',
+    subtitle: 'Gere e imprima o histórico de trajetos por período e status',
+  },
   '/admin': {
     title: 'Administração',
     subtitle: 'Gestão de usuários e senhas do sistema',

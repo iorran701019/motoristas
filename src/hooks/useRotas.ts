@@ -2,7 +2,12 @@ import { useCallback, useEffect, useState } from 'react'
 import { supabase, TABLE_ROTAS } from '@/lib/supabase'
 import { getSupabaseConfig } from '@/lib/supabase-config'
 import { todayISO } from '@/lib/utils'
-import type { DashboardStats, RotaMotorista, RotaMotoristaInsert } from '@/types/rota'
+import type {
+  DashboardStats,
+  RotaMotorista,
+  RotaMotoristaInsert,
+  RotaStatus,
+} from '@/types/rota'
 
 interface UseRotasReturn {
   rotas: RotaMotorista[]
@@ -11,6 +16,7 @@ interface UseRotasReturn {
   error: string | null
   refetch: () => Promise<void>
   createRota: (data: RotaMotoristaInsert) => Promise<{ error: string | null }>
+  updateRotaStatus: (id: string, status: RotaStatus) => Promise<{ error: string | null }>
 }
 
 /** Calcula estatísticas do dashboard a partir da lista de rotas */
@@ -80,6 +86,23 @@ export function useRotas(): UseRotasReturn {
     return { error: null }
   }
 
+  const updateRotaStatus = async (id: string, status: RotaStatus) => {
+    // Atualização otimista para resposta imediata no dropdown
+    setRotas((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)))
+
+    const { error: updateError } = await supabase
+      .from(TABLE_ROTAS)
+      .update({ status })
+      .eq('id', id)
+
+    if (updateError) {
+      await fetchRotas() // reverte ao estado real do banco
+      return { error: updateError.message }
+    }
+
+    return { error: null }
+  }
+
   return {
     rotas,
     stats: computeStats(rotas),
@@ -87,5 +110,6 @@ export function useRotas(): UseRotasReturn {
     error,
     refetch: fetchRotas,
     createRota,
+    updateRotaStatus,
   }
 }

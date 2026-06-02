@@ -2,8 +2,10 @@ import { NavLink } from 'react-router-dom'
 import {
   ShieldCheck,
   Bus,
+  FileText,
   LayoutDashboard,
   Route,
+  Users,
   X,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -20,6 +22,8 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const navItems = [
     { to: '/', label: 'Cadastro de Rotas', icon: Route },
     { to: '/dashboard', label: 'Painel / Dashboard', icon: LayoutDashboard },
+    { to: '/cadastros', label: 'Motoristas e Veículos', icon: Users },
+    { to: '/relatorio', label: 'Relatórios', icon: FileText },
     ...(isAdmin ? [{ to: '/admin', label: 'Administração', icon: ShieldCheck }] : []),
   ]
 

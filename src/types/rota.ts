@@ -1,5 +1,5 @@
 /** Registro de rota conforme tabela rotas_motoristas no Supabase */
-export const STATUS_OPTIONS = ['Agendada', 'Executada', 'Cancelada', 'Adiada'] as const
+export const STATUS_OPTIONS = ['Agendada', 'Concluída', 'Cancelada', 'Adiada'] as const
 export type RotaStatus = (typeof STATUS_OPTIONS)[number]
 
 export interface RotaMotorista {
@@ -37,3 +37,25 @@ export interface AuthUserSummary {
   last_sign_in_at: string | null
   is_admin: boolean
 }
+
+/** Cadastro de motorista (tabela motoristas) */
+export interface Motorista {
+  id: string
+  nome_completo: string
+  matricula: string
+  created_at: string
+}
+
+export type MotoristaInsert = Omit<Motorista, 'id' | 'created_at'>
+
+/** Cadastro de veículo (tabela veiculos) */
+export interface Veiculo {
+  id: string
+  placa: string
+  modelo: string
+  cor: string
+  tipo: string
+  created_at: string
+}
+
+export type VeiculoInsert = Omit<Veiculo, 'id' | 'created_at'>

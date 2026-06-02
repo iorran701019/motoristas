@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import { STATUS_OPTIONS } from '@/types/rota'
 
 /** Schema de validação do formulário de cadastro de rotas */
 export const rotaFormSchema = z.object({
@@ -19,9 +18,6 @@ export const rotaFormSchema = z.object({
     .number()
     .int('Quantidade deve ser um número inteiro')
     .min(0, 'Quantidade não pode ser negativa'),
-  status: z.enum(STATUS_OPTIONS, {
-    required_error: 'Selecione o status da rota',
-  }),
   responsavel_solicitacao: z.string().min(2, 'Informe o responsável pela solicitação'),
   observacoes: z.string().optional(),
 })

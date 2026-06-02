@@ -23,7 +23,6 @@ export function DashboardPage() {
   const [selectedRota, setSelectedRota] = useState<RotaMotorista | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [motoristaFilter, setMotoristaFilter] = useState('todos')
-  const [rotaFilter, setRotaFilter] = useState('todas')
 
   const openDetail = (rota: RotaMotorista) => {
     setSelectedRota(rota)
@@ -35,19 +34,14 @@ export function DashboardPage() {
     () => Array.from(new Set(rotas.map((r) => r.motorista))).sort(),
     [rotas]
   )
-  const rotasUnicas = useMemo(
-    () => Array.from(new Set(rotas.map((r) => r.rota_descricao))).sort(),
-    [rotas]
-  )
 
   const filteredRotas = useMemo(
     () =>
       rotas.filter((rota) => {
         if (motoristaFilter !== 'todos' && rota.motorista !== motoristaFilter) return false
-        if (rotaFilter !== 'todas' && rota.rota_descricao !== rotaFilter) return false
         return true
       }),
-    [rotas, motoristaFilter, rotaFilter]
+    [rotas, motoristaFilter]
   )
 
   return (
@@ -80,25 +74,12 @@ export function DashboardPage() {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={rotaFilter} onValueChange={setRotaFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="Filtrar por rota" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todas">Todas as rotas</SelectItem>
-                {rotasUnicas.map((rotaNome) => (
-                  <SelectItem key={rotaNome} value={rotaNome}>
-                    {rotaNome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
 
           <div className="flex flex-wrap items-center gap-2 text-xs">
             <span className="text-muted-foreground">Legenda de status:</span>
             <Badge className="bg-blue-100 text-blue-800 border-blue-200">Agendada</Badge>
-            <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">Executada</Badge>
+            <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">Concluída</Badge>
             <Badge className="bg-red-100 text-red-800 border-red-200">Cancelada</Badge>
             <Badge className="bg-amber-100 text-amber-800 border-amber-200">Adiada</Badge>
           </div>
@@ -107,7 +88,6 @@ export function DashboardPage() {
             rotas={filteredRotas}
             onEventClick={openDetail}
             activeMotorista={motoristaFilter}
-            activeRota={rotaFilter}
           />
         </CardContent>
       </Card>

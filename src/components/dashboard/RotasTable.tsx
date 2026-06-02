@@ -20,13 +20,47 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Badge } from '@/components/ui/badge'
-import { formatDateBR, formatTime, getStatusClasses } from '@/lib/utils'
-import type { RotaMotorista } from '@/types/rota'
+import { useRotasContext } from '@/context/RotasContext'
+import { useToast } from '@/hooks/use-toast'
+import { cn, formatDateBR, formatTime, getStatusClasses } from '@/lib/utils'
+import { STATUS_OPTIONS, type RotaMotorista, type RotaStatus } from '@/types/rota'
 
 interface RotasTableProps {
   rotas: RotaMotorista[]
   onRowClick?: (rota: RotaMotorista) => void
+}
+
+/** Seletor de status inline — altera o status direto na linha do histórico */
+function StatusCell({ rota }: { rota: RotaMotorista }) {
+  const { updateRotaStatus } = useRotasContext()
+  const { toast } = useToast()
+
+  const handleChange = async (value: string) => {
+    const { error } = await updateRotaStatus(rota.id, value as RotaStatus)
+    if (error) {
+      toast({ variant: 'destructive', title: 'Erro ao atualizar status', description: error })
+    }
+  }
+
+  // stopPropagation evita abrir o modal de detalhes ao interagir com o select
+  return (
+    <div onClick={(e) => e.stopPropagation()}>
+      <Select value={rota.status} onValueChange={handleChange}>
+        <SelectTrigger
+          className={cn('h-8 w-36 border font-medium', getStatusClasses(rota.status))}
+        >
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {STATUS_OPTIONS.map((s) => (
+            <SelectItem key={s} value={s}>
+              {s}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  )
 }
 
 /** Tabela de rotas com busca, ordenação e filtros */
@@ -70,9 +104,7 @@ export function RotasTable({ rotas, onRowClick }: RotasTableProps) {
       {
         accessorKey: 'status',
         header: 'Status',
-        cell: ({ row }) => (
-          <Badge className={getStatusClasses(row.original.status)}>{row.original.status}</Badge>
-        ),
+        cell: ({ row }) => <StatusCell rota={row.original} />,
       },
       { accessorKey: 'placa_veiculo', header: 'Placa' },
       { accessorKey: 'destino_principal', header: 'Destino' },
