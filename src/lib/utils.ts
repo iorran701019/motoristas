@@ -23,6 +23,21 @@ export function todayISO(): string {
   return new Date().toISOString().split('T')[0]
 }
 
+/**
+ * Verifica se dois intervalos de horário se sobrepõem.
+ * Aceita "HH:MM" ou "HH:MM:SS" (normaliza para HH:MM). Horários encostados
+ * (um termina quando o outro começa) NÃO contam como conflito.
+ */
+export function intervalosSobrepoem(
+  iniA: string,
+  fimA: string,
+  iniB: string,
+  fimB: string
+): boolean {
+  const n = (t: string) => t.slice(0, 5)
+  return n(iniA) < n(fimB) && n(iniB) < n(fimA)
+}
+
 export function getStatusClasses(status: RotaStatus): string {
   switch (status) {
     case 'Concluída':

@@ -17,7 +17,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { useRotasContext } from '@/context/RotasContext'
 import { useToast } from '@/hooks/use-toast'
 import { rotaFormSchema, type RotaFormValues } from '@/lib/validations/rota'
-import { todayISO } from '@/lib/utils'
+import { formatDateBR, formatTime, intervalosSobrepoem, todayISO } from '@/lib/utils'
 import type { Motorista, Veiculo } from '@/types/rota'
 
 const defaultValues: RotaFormValues = {
@@ -42,7 +42,7 @@ interface RotaFormProps {
 
 /** Formulário de cadastro de rotas inspirado na planilha SME */
 export function RotaForm({ motoristas = [], veiculos = [] }: RotaFormProps) {
-  const { createRota } = useRotasContext()
+  const { rotas, createRota } = useRotasContext()
   const { toast } = useToast()
 
   const {
@@ -63,6 +63,41 @@ export function RotaForm({ motoristas = [], veiculos = [] }: RotaFormProps) {
   const semCadastros = motoristas.length === 0 || veiculos.length === 0
 
   const onSubmit = async (values: RotaFormValues) => {
+    // Horário de retorno precisa ser depois da saída
+    if (formatTime(values.horario_retorno) <= formatTime(values.horario_saida)) {
+      toast({
+        variant: 'destructive',
+        title: 'Horário inválido',
+        description: 'O horário de retorno deve ser depois do horário de saída.',
+      })
+      return
+    }
+
+    // Verifica conflito de horário do mesmo motorista na mesma data
+    // (ignora rotas canceladas, que não ocupam a agenda).
+    const conflito = rotas.find(
+      (r) =>
+        r.status !== 'Cancelada' &&
+        r.data === values.data &&
+        r.motorista.trim().toLowerCase() === values.motorista.trim().toLowerCase() &&
+        intervalosSobrepoem(
+          values.horario_saida,
+          values.horario_retorno,
+          r.horario_saida,
+          r.horario_retorno
+        )
+    )
+
+    if (conflito) {
+      const prosseguir = window.confirm(
+        `Conflito de horário: ${conflito.motorista} já tem uma rota em ` +
+          `${formatDateBR(conflito.data)} das ${formatTime(conflito.horario_saida)} ` +
+          `às ${formatTime(conflito.horario_retorno)} (${conflito.rota_descricao}).\n\n` +
+          `Deseja cadastrar mesmo assim?`
+      )
+      if (!prosseguir) return
+    }
+
     const { error } = await createRota({
       motorista: values.motorista.trim(),
       data: values.data,
