@@ -1,9 +1,23 @@
+import { FunctionsHttpError } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import type { AuthUserSummary } from '@/types/rota'
 
 interface AdminFunctionResult<T> {
   data: T | null
   error: string | null
+}
+
+/** Extrai a mensagem de erro do corpo JSON retornado pela Edge Function. */
+async function extractFnError(error: unknown): Promise<string> {
+  if (error instanceof FunctionsHttpError) {
+    try {
+      const body = await error.context.json()
+      if (body?.error) return String(body.error)
+    } catch {
+      // corpo não-JSON: cai no fallback abaixo
+    }
+  }
+  return error instanceof Error ? error.message : 'Erro inesperado.'
 }
 
 async function invokeAdminFn<T>(
@@ -15,7 +29,7 @@ async function invokeAdminFn<T>(
   })
 
   if (error) {
-    return { data: null, error: error.message }
+    return { data: null, error: await extractFnError(error) }
   }
 
   return { data: data as T, error: null }
