@@ -24,7 +24,6 @@ const defaultValues: RotaFormValues = {
   motorista: '',
   data: todayISO(),
   placa_veiculo: '',
-  tipo_veiculo: '',
   rota_descricao: '',
   destino_principal: '',
   horario_saida: '',
@@ -60,22 +59,14 @@ export function RotaForm({ motoristas = [], veiculos = [] }: RotaFormProps) {
 
   const motoristaSelecionado = watch('motorista')
   const placaSelecionada = watch('placa_veiculo')
-  const tipoVeiculo = watch('tipo_veiculo')
 
   const semCadastros = motoristas.length === 0 || veiculos.length === 0
-
-  const handlePlacaChange = (placa: string) => {
-    setValue('placa_veiculo', placa, { shouldValidate: true })
-    const veiculo = veiculos.find((v) => v.placa === placa)
-    setValue('tipo_veiculo', veiculo?.tipo ?? '', { shouldValidate: true })
-  }
 
   const onSubmit = async (values: RotaFormValues) => {
     const { error } = await createRota({
       motorista: values.motorista.trim(),
       data: values.data,
       placa_veiculo: values.placa_veiculo,
-      tipo_veiculo: values.tipo_veiculo,
       rota_descricao: values.rota_descricao.trim(),
       destino_principal: values.destino_principal.trim(),
       horario_saida: values.horario_saida,
@@ -169,7 +160,10 @@ export function RotaForm({ motoristas = [], veiculos = [] }: RotaFormProps) {
               <Label>
                 Placa do Veículo <span className="text-destructive">*</span>
               </Label>
-              <Select value={placaSelecionada} onValueChange={handlePlacaChange}>
+              <Select
+                value={placaSelecionada}
+                onValueChange={(v) => setValue('placa_veiculo', v, { shouldValidate: true })}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione a placa" />
                 </SelectTrigger>
@@ -185,21 +179,9 @@ export function RotaForm({ motoristas = [], veiculos = [] }: RotaFormProps) {
             </div>
           </div>
 
-          {/* Linha 2: Tipo (derivado), Rota */}
-          <div className="grid gap-4 md:grid-cols-3">
+          {/* Linha 2: Rota */}
+          <div className="grid gap-4">
             <div className="space-y-2">
-              <Label htmlFor="tipo_veiculo">Tipo de Veículo</Label>
-              <Input
-                id="tipo_veiculo"
-                value={tipoVeiculo}
-                readOnly
-                placeholder="Definido pela placa"
-                className="bg-muted/50"
-              />
-              {fieldError('tipo_veiculo')}
-            </div>
-
-            <div className="space-y-2 md:col-span-2">
               <Label htmlFor="rota_descricao">
                 Rota / Descrição do Trajeto <span className="text-destructive">*</span>
               </Label>

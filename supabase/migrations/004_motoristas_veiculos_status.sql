@@ -30,7 +30,6 @@ CREATE TABLE IF NOT EXISTS veiculos (
   placa TEXT NOT NULL UNIQUE,
   modelo TEXT NOT NULL,
   cor TEXT NOT NULL,
-  tipo TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -55,7 +54,7 @@ CREATE POLICY "Veiculos acesso autenticado"
   WITH CHECK (true);
 
 COMMENT ON TABLE motoristas IS 'Cadastro de motoristas (nome completo + matrícula)';
-COMMENT ON TABLE veiculos IS 'Cadastro de veículos (placa, modelo, cor, tipo)';
+COMMENT ON TABLE veiculos IS 'Cadastro de veículos (placa, modelo, cor)';
 
 -- 5) Recarrega o cache de schema do PostgREST
 NOTIFY pgrst, 'reload schema';

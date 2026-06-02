@@ -69,6 +69,7 @@ npm install
    `supabase/migrations/002_auth_status_admin.sql`
    `supabase/migrations/003_fix_rls_admin_function.sql`
    `supabase/migrations/004_motoristas_veiculos_status.sql`
+   `supabase/migrations/005_remove_tipo_veiculo.sql`
 
 3. Em **Project Settings → API**, copie:
    - Project URL
@@ -123,7 +124,6 @@ Tabela: `rotas_motoristas`
 | motorista                | TEXT        |
 | data                     | DATE        |
 | placa_veiculo            | TEXT        |
-| tipo_veiculo             | TEXT        |
 | rota_descricao           | TEXT        |
 | destino_principal        | TEXT        |
 | horario_saida            | TIME        |
@@ -136,7 +136,7 @@ Tabela: `rotas_motoristas`
 
 Tabela: `motoristas` — `id` (UUID PK), `nome_completo` (TEXT), `matricula` (TEXT único), `created_at`.
 
-Tabela: `veiculos` — `id` (UUID PK), `placa` (TEXT único), `modelo` (TEXT), `cor` (TEXT), `tipo` (TEXT), `created_at`.
+Tabela: `veiculos` — `id` (UUID PK), `placa` (TEXT único), `modelo` (TEXT), `cor` (TEXT), `created_at`.
 
 Ambas têm RLS liberada para qualquer usuário autenticado (criadas na migration 004).
 

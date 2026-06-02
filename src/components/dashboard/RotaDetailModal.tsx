@@ -23,7 +23,6 @@ export function RotaDetailModal({ rota, open, onOpenChange }: RotaDetailModalPro
     { label: 'Motorista', value: rota.motorista },
     { label: 'Data', value: formatDateBR(rota.data) },
     { label: 'Placa', value: rota.placa_veiculo },
-    { label: 'Tipo de Veículo', value: rota.tipo_veiculo },
     { label: 'Rota / Trajeto', value: rota.rota_descricao },
     { label: 'Destino Principal', value: rota.destino_principal },
     { label: 'Horário de Saída', value: formatTime(rota.horario_saida) },

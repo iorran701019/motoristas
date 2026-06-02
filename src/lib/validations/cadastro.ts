@@ -17,17 +17,6 @@ export const veiculoFormSchema = z.object({
     .transform((v) => v.toUpperCase().replace(/[^A-Z0-9]/g, '')),
   modelo: z.string().min(1, 'Informe o modelo'),
   cor: z.string().min(1, 'Informe a cor'),
-  tipo: z.string().min(1, 'Selecione o tipo de veículo'),
 })
 
 export type VeiculoFormValues = z.infer<typeof veiculoFormSchema>
-
-/** Tipos de veículo disponíveis no cadastro */
-export const TIPOS_VEICULO = [
-  'Van',
-  'Micro-ônibus',
-  'Ônibus',
-  'Carro',
-  'Utilitário',
-  'Outro',
-] as const

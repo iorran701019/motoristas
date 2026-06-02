@@ -7,7 +7,6 @@ export interface RotaMotorista {
   motorista: string
   data: string
   placa_veiculo: string
-  tipo_veiculo: string
   rota_descricao: string
   destino_principal: string
   horario_saida: string
@@ -54,7 +53,6 @@ export interface Veiculo {
   placa: string
   modelo: string
   cor: string
-  tipo: string
   created_at: string
 }
 

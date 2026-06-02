@@ -4,22 +4,11 @@ import { Loader2, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { useCadastrosContext } from '@/context/CadastrosContext'
 import { useToast } from '@/hooks/use-toast'
-import {
-  TIPOS_VEICULO,
-  veiculoFormSchema,
-  type VeiculoFormValues,
-} from '@/lib/validations/cadastro'
+import { veiculoFormSchema, type VeiculoFormValues } from '@/lib/validations/cadastro'
 
-const defaultValues: VeiculoFormValues = { placa: '', modelo: '', cor: '', tipo: '' }
+const defaultValues: VeiculoFormValues = { placa: '', modelo: '', cor: '' }
 
 /** Formulário de cadastro de veículo */
 export function VeiculoForm() {
@@ -30,15 +19,11 @@ export function VeiculoForm() {
     register,
     handleSubmit,
     reset,
-    setValue,
-    watch,
     formState: { errors, isSubmitting },
   } = useForm<VeiculoFormValues>({
     resolver: zodResolver(veiculoFormSchema),
     defaultValues,
   })
-
-  const tipo = watch('tipo')
 
   const onSubmit = async (values: VeiculoFormValues) => {
     const { error } = await createVeiculo(values)
@@ -53,7 +38,7 @@ export function VeiculoForm() {
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
-      className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_1fr_auto] lg:items-end"
+      className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto] lg:items-end"
     >
       <div className="space-y-2">
         <Label htmlFor="placa">
@@ -77,25 +62,6 @@ export function VeiculoForm() {
         </Label>
         <Input id="cor" placeholder="Ex.: Branco" {...register('cor')} />
         {errors.cor && <p className="text-xs text-destructive">{errors.cor.message}</p>}
-      </div>
-
-      <div className="space-y-2">
-        <Label>
-          Tipo <span className="text-destructive">*</span>
-        </Label>
-        <Select value={tipo} onValueChange={(v) => setValue('tipo', v, { shouldValidate: true })}>
-          <SelectTrigger>
-            <SelectValue placeholder="Tipo" />
-          </SelectTrigger>
-          <SelectContent>
-            {TIPOS_VEICULO.map((t) => (
-              <SelectItem key={t} value={t}>
-                {t}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {errors.tipo && <p className="text-xs text-destructive">{errors.tipo.message}</p>}
       </div>
 
       <Button type="submit" disabled={isSubmitting}>

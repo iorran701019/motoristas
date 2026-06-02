@@ -9,7 +9,6 @@ export const rotaFormSchema = z.object({
     .min(7, 'Placa inválida')
     .max(8, 'Placa inválida')
     .transform((v) => v.toUpperCase().replace(/[^A-Z0-9]/g, '')),
-  tipo_veiculo: z.string().min(1, 'Selecione o tipo de veículo'),
   rota_descricao: z.string().min(3, 'Descreva a rota ou trajeto'),
   destino_principal: z.string().min(2, 'Informe o destino principal'),
   horario_saida: z.string().min(1, 'Informe o horário de saída'),

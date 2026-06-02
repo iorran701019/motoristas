@@ -111,20 +111,19 @@ export function CadastrosPage() {
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">Placa</th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">Modelo</th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">Cor</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Tipo</th>
                   <th className="px-4 py-3 text-right font-medium text-muted-foreground">Ações</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-6 text-center text-muted-foreground">
+                    <td colSpan={4} className="px-4 py-6 text-center text-muted-foreground">
                       Carregando...
                     </td>
                   </tr>
                 ) : veiculos.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-6 text-center text-muted-foreground">
+                    <td colSpan={4} className="px-4 py-6 text-center text-muted-foreground">
                       Nenhum veículo cadastrado.
                     </td>
                   </tr>
@@ -134,7 +133,6 @@ export function CadastrosPage() {
                       <td className="px-4 py-3 font-medium">{v.placa}</td>
                       <td className="px-4 py-3">{v.modelo}</td>
                       <td className="px-4 py-3">{v.cor}</td>
-                      <td className="px-4 py-3">{v.tipo}</td>
                       <td className="px-4 py-3 text-right">
                         <Button
                           variant="ghost"
