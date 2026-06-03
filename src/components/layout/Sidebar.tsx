@@ -7,7 +7,9 @@ import {
   Route,
   Users,
   X,
+  LogOut,
 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/context/AuthContext'
 
@@ -18,7 +20,7 @@ interface SidebarProps {
 
 /** Barra lateral de navegação — responsiva com overlay em mobile */
 export function Sidebar({ open, onClose }: SidebarProps) {
-  const { isAdmin } = useAuth()
+  const { isAdmin, signOut } = useAuth()
   const navItems = [
     { to: '/', label: 'Cadastro de Rotas', icon: Route },
     { to: '/dashboard', label: 'Painel / Dashboard', icon: LayoutDashboard },
@@ -87,6 +89,19 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             Secretaria Municipal de Educação
           </p>
           <p className="mt-1 text-xs text-institucional-500">v1.0 — MVP</p>
+
+          {/* Botão de logout — visível apenas no mobile (no desktop o Header já tem) */}
+          <Button
+            variant="ghost"
+            onClick={() => {
+              signOut()
+              onClose()
+            }}
+            className="mt-3 w-full justify-start gap-3 text-institucional-200 hover:bg-institucional-700 hover:text-white lg:hidden"
+          >
+            <LogOut className="h-5 w-5 shrink-0" />
+            Sair
+          </Button>
         </div>
       </aside>
     </>
