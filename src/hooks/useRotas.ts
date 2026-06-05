@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase, TABLE_ROTAS } from '@/lib/supabase'
+import { logAction } from '@/lib/audit'
 import { getSupabaseConfig } from '@/lib/supabase-config'
 import { todayISO } from '@/lib/utils'
 import type {
@@ -78,11 +79,26 @@ export function useRotas(): UseRotasReturn {
   }, [fetchRotas])
 
   const createRota = async (payload: RotaMotoristaInsert) => {
-    const { error: insertError } = await supabase.from(TABLE_ROTAS).insert(payload)
+    const { data, error: insertError } = await supabase
+      .from(TABLE_ROTAS)
+      .insert(payload)
+      .select('id')
+      .single()
 
     if (insertError) {
       return { error: insertError.message }
     }
+
+    void logAction({
+      action: 'rota.created',
+      entity: 'rota',
+      entityId: data?.id,
+      details: {
+        motorista: payload.motorista,
+        destino_principal: payload.destino_principal,
+        data: payload.data,
+      },
+    })
 
     await fetchRotas()
     return { error: null }

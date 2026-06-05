@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
+import { logAction } from '@/lib/audit'
 
 interface AuthContextValue {
   user: User | null
@@ -65,7 +66,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       isAdmin,
       signIn: async (email, password) => {
-        const { error } = await supabase.auth.signInWithPassword({ email, password })
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+        // Só registra em login efetivo. signIn só é chamado pela tela de login —
+        // o onAuthStateChange (refresh de token) NÃO passa por aqui, então não há
+        // log duplicado a cada revalidação de sessão.
+        if (!error) {
+          void logAction({ action: 'auth.login', entity: 'auth', entityId: data.user?.id })
+        }
         return { error: error?.message ?? null }
       },
       signOut: async () => {

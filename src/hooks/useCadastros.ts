@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { logAction } from '@/lib/audit'
 import { getSupabaseConfig } from '@/lib/supabase-config'
 import type {
   Motorista,
@@ -63,8 +64,19 @@ export function useCadastros(): UseCadastrosReturn {
   }, [fetchCadastros])
 
   const createMotorista = async (payload: MotoristaInsert) => {
-    const { error: insertError } = await supabase.from('motoristas').insert(payload)
+    const { data, error: insertError } = await supabase
+      .from('motoristas')
+      .insert(payload)
+      .select('id')
+      .single()
     if (insertError) return { error: insertError.message }
+    // Log best-effort, sem bloquear o fluxo (exclusões são cobertas por trigger SQL)
+    void logAction({
+      action: 'motorista.created',
+      entity: 'motorista',
+      entityId: data?.id,
+      details: { nome_completo: payload.nome_completo, matricula: payload.matricula },
+    })
     await fetchCadastros()
     return { error: null }
   }
@@ -77,8 +89,18 @@ export function useCadastros(): UseCadastrosReturn {
   }
 
   const createVeiculo = async (payload: VeiculoInsert) => {
-    const { error: insertError } = await supabase.from('veiculos').insert(payload)
+    const { data, error: insertError } = await supabase
+      .from('veiculos')
+      .insert(payload)
+      .select('id')
+      .single()
     if (insertError) return { error: insertError.message }
+    void logAction({
+      action: 'veiculo.created',
+      entity: 'veiculo',
+      entityId: data?.id,
+      details: { placa: payload.placa, modelo: payload.modelo, cor: payload.cor },
+    })
     await fetchCadastros()
     return { error: null }
   }
