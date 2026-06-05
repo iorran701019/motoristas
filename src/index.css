@@ -83,16 +83,17 @@
     display: none !important;
   }
 
-  /* Garante que as cores dos badges saiam na impressão */
+  /* Relatório em preto e branco: todo o texto preto, sem fundos coloridos */
+  #relatorio-print,
   #relatorio-print * {
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
+    color: #000 !important;
+    background: transparent !important;
   }
 
   /* Página A4 em paisagem com margens de 1cm */
   @page {
     size: A4 landscape;
-    margin: 1cm;
+    margin: 1cm 1cm 1.6cm 1cm; /* folga inferior p/ o rodapé da legenda */
   }
 
   /* Scroll horizontal não existe no papel — neutraliza */
@@ -139,5 +140,19 @@
   #relatorio-print tr {
     break-inside: avoid;
     page-break-inside: avoid;
+  }
+
+  /* Legenda repetida como rodapé fixo em todas as páginas do PDF */
+  #relatorio-legenda {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: 0;
+    padding-top: 4px;
+    font-size: 9px;
+    color: #000 !important;
+    text-align: center;
+    background: #fff;
   }
 }

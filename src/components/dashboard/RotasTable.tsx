@@ -295,10 +295,6 @@ export function RotasTable({ rotas, onRowClick }: RotasTableProps) {
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-xs text-muted-foreground">
-            {table.getFilteredRowModel().rows.length} registro(s) exibido(s)
-          </p>
-
           {table.getPageCount() > 0 && (
             <div className="flex items-center gap-2">
               <Button
@@ -322,6 +318,10 @@ export function RotasTable({ rotas, onRowClick }: RotasTableProps) {
               </Button>
             </div>
           )}
+
+          <p className="text-xs text-muted-foreground">
+            {table.getFilteredRowModel().rows.length} registro(s) exibido(s)
+          </p>
         </div>
       </CardContent>
     </Card>

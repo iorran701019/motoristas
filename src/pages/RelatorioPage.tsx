@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react'
 import { Printer } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -13,8 +12,16 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useRotasContext } from '@/context/RotasContext'
-import { formatDateBR, formatTime, getStatusClasses } from '@/lib/utils'
+import { formatDateBR, formatTime } from '@/lib/utils'
 import { STATUS_OPTIONS, type RotaStatus } from '@/types/rota'
+
+/** Siglas de status para o relatório PDF em preto e branco */
+const STATUS_SIGLA: Record<RotaStatus, string> = {
+  Agendada: 'AG',
+  Concluída: 'CO',
+  Cancelada: 'CA',
+  Adiada: 'AD',
+}
 
 /** Tela de relatório imprimível do histórico de trajetos */
 export function RelatorioPage() {
@@ -115,13 +122,13 @@ export function RelatorioPage() {
           </div>
 
           <div className="flex items-center justify-between border-t pt-4">
-            <p className="text-sm text-muted-foreground">
-              {resultado.length} trajeto(s) no resultado
-            </p>
             <Button onClick={() => window.print()} disabled={resultado.length === 0}>
               <Printer className="h-4 w-4" />
               Imprimir / Salvar PDF
             </Button>
+            <p className="text-sm text-muted-foreground">
+              {resultado.length} trajeto(s) no resultado
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -175,9 +182,7 @@ export function RelatorioPage() {
                     <td className="px-3 py-2 whitespace-nowrap">{formatTime(r.horario_saida)}</td>
                     <td className="px-3 py-2 whitespace-nowrap">{formatTime(r.horario_retorno)}</td>
                     <td className="px-3 py-2">{r.qtd_passageiros}</td>
-                    <td className="px-3 py-2">
-                      <Badge className={getStatusClasses(r.status)}>{r.status}</Badge>
-                    </td>
+                    <td className="px-3 py-2">{STATUS_SIGLA[r.status]}</td>
                     <td className="px-3 py-2">{r.responsavel_solicitacao}</td>
                   </tr>
                 ))
@@ -185,6 +190,11 @@ export function RelatorioPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Legenda das siglas de status */}
+        <p id="relatorio-legenda" className="mt-4 text-xs text-black">
+          AG = Agendada · CO = Concluída · CA = Cancelada · AD = Adiada
+        </p>
       </div>
     </div>
   )
