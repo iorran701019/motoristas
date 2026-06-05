@@ -18,6 +18,7 @@ interface UseRotasReturn {
   createRota: (data: RotaMotoristaInsert) => Promise<{ error: string | null }>
   updateRota: (id: string, data: RotaMotoristaInsert) => Promise<{ error: string | null }>
   updateRotaStatus: (id: string, status: RotaStatus) => Promise<{ error: string | null }>
+  deleteRota: (id: string) => Promise<{ error: string | null }>
 }
 
 /** Calcula estatísticas do dashboard a partir da lista de rotas */
@@ -118,6 +119,20 @@ export function useRotas(): UseRotasReturn {
     return { error: null }
   }
 
+  const deleteRota = async (id: string) => {
+    const { error: deleteError } = await supabase
+      .from(TABLE_ROTAS)
+      .delete()
+      .eq('id', id)
+
+    if (deleteError) {
+      return { error: deleteError.message }
+    }
+
+    await fetchRotas()
+    return { error: null }
+  }
+
   return {
     rotas,
     stats: computeStats(rotas),
@@ -127,5 +142,6 @@ export function useRotas(): UseRotasReturn {
     createRota,
     updateRota,
     updateRotaStatus,
+    deleteRota,
   }
 }

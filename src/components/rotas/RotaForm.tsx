@@ -261,6 +261,7 @@ export function RotaForm({ motoristas = [], veiculos = [] }: RotaFormProps) {
               <Input
                 id="rota_descricao"
                 placeholder="Ex.: SME → Unidade Escolar Centro"
+                maxLength={60}
                 {...register('rota_descricao')}
               />
               {fieldError('rota_descricao')}
@@ -274,6 +275,7 @@ export function RotaForm({ motoristas = [], veiculos = [] }: RotaFormProps) {
             <Input
               id="destino_principal"
               placeholder="Destino principal da viagem"
+              maxLength={30}
               {...register('destino_principal')}
             />
             {fieldError('destino_principal')}
@@ -304,7 +306,8 @@ export function RotaForm({ motoristas = [], veiculos = [] }: RotaFormProps) {
               <Input
                 id="qtd_passageiros"
                 type="number"
-                min={0}
+                min={1}
+                max={4}
                 {...register('qtd_passageiros')}
               />
               {fieldError('qtd_passageiros')}
@@ -317,6 +320,7 @@ export function RotaForm({ motoristas = [], veiculos = [] }: RotaFormProps) {
               <Input
                 id="responsavel_solicitacao"
                 placeholder="Nome do responsável"
+                maxLength={30}
                 {...register('responsavel_solicitacao')}
               />
               {fieldError('responsavel_solicitacao')}

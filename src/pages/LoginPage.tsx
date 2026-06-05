@@ -45,7 +45,7 @@ export function LoginPage() {
             <Bus className="h-6 w-6 text-institucional-700" />
           </div>
           <CardTitle className="text-2xl text-institucional-800">Acesso Interno</CardTitle>
-          <CardDescription>Sistema de Rotas e Motoristas da Secretaria Municipal de Educação</CardDescription>
+          <CardDescription>Sistema de Rotas e Motoristas da Secretaria Municipal de Educação - Prefeitura Municipal de Barra Mansa</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={onSubmit} className="space-y-4">

@@ -8,7 +8,7 @@ import {
   type ColumnDef,
   type SortingState,
 } from '@tanstack/react-table'
-import { ArrowUpDown, Search } from 'lucide-react'
+import { ArrowUpDown, Search, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useRotasContext } from '@/context/RotasContext'
+import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/hooks/use-toast'
 import { cn, formatDateBR, formatTime, getStatusClasses } from '@/lib/utils'
 import { STATUS_OPTIONS, type RotaMotorista, type RotaStatus } from '@/types/rota'
@@ -28,6 +29,12 @@ import { STATUS_OPTIONS, type RotaMotorista, type RotaStatus } from '@/types/rot
 interface RotasTableProps {
   rotas: RotaMotorista[]
   onRowClick?: (rota: RotaMotorista) => void
+}
+
+/** Trunca o texto exibido na tabela; o valor completo fica no modal de detalhes. */
+function truncar(value: unknown) {
+  const v = String(value ?? '')
+  return v.length > 12 ? v.slice(0, 12) + '...' : v
 }
 
 /** Seletor de status inline — altera o status direto na linha do histórico */
@@ -69,6 +76,19 @@ export function RotasTable({ rotas, onRowClick }: RotasTableProps) {
   const [globalFilter, setGlobalFilter] = useState('')
   const [filtroData, setFiltroData] = useState('')
   const [filtroMotorista, setFiltroMotorista] = useState('todos')
+  const { deleteRota } = useRotasContext()
+  const { isAdmin } = useAuth()
+  const { toast } = useToast()
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Excluir esta rota? Esta ação não pode ser desfeita.')) return
+    const { error } = await deleteRota(id)
+    if (error) {
+      toast({ variant: 'destructive', title: 'Erro ao excluir', description: error })
+      return
+    }
+    toast({ variant: 'success', title: 'Rota excluída' })
+  }
 
   const motoristas = useMemo(
     () => [...new Set(rotas.map((r) => r.motorista))].sort(),
@@ -107,7 +127,16 @@ export function RotasTable({ rotas, onRowClick }: RotasTableProps) {
         cell: ({ row }) => <StatusCell rota={row.original} />,
       },
       { accessorKey: 'placa_veiculo', header: 'Placa' },
-      { accessorKey: 'destino_principal', header: 'Destino' },
+      {
+        accessorKey: 'destino_principal',
+        header: 'Destino',
+        cell: ({ getValue }) => truncar(getValue()),
+      },
+      {
+        accessorKey: 'rota_descricao',
+        header: 'Rota / Trajeto',
+        cell: ({ getValue }) => truncar(getValue()),
+      },
       {
         accessorKey: 'horario_saida',
         header: 'Saída',
@@ -119,9 +148,30 @@ export function RotasTable({ rotas, onRowClick }: RotasTableProps) {
         cell: ({ row }) => formatTime(row.original.horario_retorno),
       },
       { accessorKey: 'qtd_passageiros', header: 'Pass.' },
-      { accessorKey: 'responsavel_solicitacao', header: 'Responsável' },
+      {
+        accessorKey: 'responsavel_solicitacao',
+        header: 'Responsável',
+        cell: ({ getValue }) => truncar(getValue()),
+      },
+      {
+        id: 'acoes',
+        header: 'Ações',
+        cell: ({ row }) =>
+          isAdmin ? (
+            <div onClick={(e) => e.stopPropagation()}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleDelete(row.original.id)}
+                aria-label="Excluir rota"
+              >
+                <Trash2 className="h-4 w-4 text-destructive" />
+              </Button>
+            </div>
+          ) : null,
+      },
     ],
-    []
+    [isAdmin]
   )
 
   const table = useReactTable({

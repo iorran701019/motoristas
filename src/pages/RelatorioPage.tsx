@@ -130,7 +130,7 @@ export function RelatorioPage() {
       <div id="relatorio-print" className="rounded-lg border bg-white p-6">
         <div className="mb-4 border-b pb-4">
           <h2 className="text-xl font-bold text-institucional-800">
-            Relatório de Trajetos — SME
+            Relatório de Trajetos - SME - PMBM
           </h2>
           <p className="text-sm text-muted-foreground">
             Período: {periodoLabel} · Status: {statusSel.join(', ') || '—'}

@@ -5,11 +5,13 @@ import { SupabaseConfigAlert } from '@/components/SupabaseConfigAlert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useCadastrosContext } from '@/context/CadastrosContext'
+import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/hooks/use-toast'
 
 /** Tela de gestão de motoristas e veículos (acesso a todos os usuários) */
 export function CadastrosPage() {
   const { motoristas, veiculos, loading, deleteMotorista, deleteVeiculo } = useCadastrosContext()
+  const { isAdmin } = useAuth()
   const { toast } = useToast()
 
   const handleDeleteMotorista = async (id: string, nome: string) => {
@@ -75,14 +77,16 @@ export function CadastrosPage() {
                       <td className="px-4 py-3">{m.nome_completo}</td>
                       <td className="px-4 py-3">{m.matricula}</td>
                       <td className="px-4 py-3 text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteMotorista(m.id, m.nome_completo)}
-                          aria-label={`Excluir ${m.nome_completo}`}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                        {isAdmin && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteMotorista(m.id, m.nome_completo)}
+                            aria-label={`Excluir ${m.nome_completo}`}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        )}
                       </td>
                     </tr>
                   ))
@@ -134,14 +138,16 @@ export function CadastrosPage() {
                       <td className="px-4 py-3">{v.modelo}</td>
                       <td className="px-4 py-3">{v.cor}</td>
                       <td className="px-4 py-3 text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteVeiculo(v.id, v.placa)}
-                          aria-label={`Excluir ${v.placa}`}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                        {isAdmin && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteVeiculo(v.id, v.placa)}
+                            aria-label={`Excluir ${v.placa}`}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        )}
                       </td>
                     </tr>
                   ))

@@ -15,7 +15,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 
 /** Tela 2 — Painel / Dashboard */
 export function DashboardPage() {
@@ -74,14 +73,6 @@ export function DashboardPage() {
                 ))}
               </SelectContent>
             </Select>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2 text-xs">
-            <span className="text-muted-foreground">Legenda de status:</span>
-            <Badge className="bg-blue-100 text-blue-800 border-blue-200">Agendada</Badge>
-            <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">Concluída</Badge>
-            <Badge className="bg-red-100 text-red-800 border-red-200">Cancelada</Badge>
-            <Badge className="bg-amber-100 text-amber-800 border-amber-200">Adiada</Badge>
           </div>
 
           <RotasCalendar

@@ -23,7 +23,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const { isAdmin, signOut } = useAuth()
   const navItems = [
     { to: '/', label: 'Cadastro de Rotas', icon: Route },
-    { to: '/dashboard', label: 'Painel / Dashboard', icon: LayoutDashboard },
+    { to: '/dashboard', label: 'Painel', icon: LayoutDashboard },
     { to: '/cadastros', label: 'Motoristas e Veículos', icon: Users },
     { to: '/relatorio', label: 'Relatórios', icon: FileText },
     ...(isAdmin ? [{ to: '/admin', label: 'Administração', icon: ShieldCheck }] : []),

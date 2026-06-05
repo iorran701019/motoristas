@@ -16,6 +16,7 @@ interface RotasContextValue {
   createRota: (data: RotaMotoristaInsert) => Promise<{ error: string | null }>
   updateRota: (id: string, data: RotaMotoristaInsert) => Promise<{ error: string | null }>
   updateRotaStatus: (id: string, status: RotaStatus) => Promise<{ error: string | null }>
+  deleteRota: (id: string) => Promise<{ error: string | null }>
 }
 
 const RotasContext = createContext<RotasContextValue | null>(null)
