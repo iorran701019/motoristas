@@ -247,7 +247,7 @@ export function RotasTable({ rotas, onRowClick }: RotasTableProps) {
           </div>
         </div>
 
-        <div className="overflow-x-auto rounded-md border">
+        <div className="tabela-scroll overflow-x-auto rounded-md border">
           <table className="w-full text-sm">
             <thead className="bg-muted/50">
               {table.getHeaderGroups().map((hg) => (

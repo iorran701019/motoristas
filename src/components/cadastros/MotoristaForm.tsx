@@ -25,6 +25,9 @@ export function MotoristaForm() {
     defaultValues,
   })
 
+  // Registro da matrícula com sanitização: só dígitos, máx. 6
+  const matriculaReg = register('matricula')
+
   const onSubmit = async (values: MotoristaFormValues) => {
     const { error } = await createMotorista(values)
     if (error) {
@@ -51,7 +54,17 @@ export function MotoristaForm() {
         <Label htmlFor="matricula">
           Matrícula <span className="text-destructive">*</span>
         </Label>
-        <Input id="matricula" placeholder="Ex.: 12345" {...register('matricula')} />
+        <Input
+          id="matricula"
+          inputMode="numeric"
+          maxLength={6}
+          placeholder="Ex.: 123456"
+          {...matriculaReg}
+          onChange={(e) => {
+            e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6)
+            matriculaReg.onChange(e)
+          }}
+        />
         {errors.matricula && <p className="text-xs text-destructive">{errors.matricula.message}</p>}
       </div>
 

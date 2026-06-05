@@ -60,6 +60,62 @@
   cursor: pointer;
 }
 
+/* Calendário de rotas — ajustes escopados ao container .rotas-calendar */
+
+/* 1) Bloco de evento sempre com o fundo do motorista (não dot/transparente) */
+.rotas-calendar .fc-daygrid-event {
+  border-radius: 4px;
+}
+.rotas-calendar .fc-daygrid-event .fc-event-main {
+  /* deixa o fundo do motorista (aplicado pelo FullCalendar no .fc-event) aparecer */
+  background-color: transparent;
+}
+
+/* 2) Destaque do dia atual */
+/* remove o fundo azul da célula inteira p/ não competir com a cor dos eventos */
+.rotas-calendar .fc .fc-day-today {
+  background-color: transparent !important;
+}
+/* borda no tom primário ao redor do corpo da célula de hoje (sem ocupar espaço) */
+.rotas-calendar .fc-day-today .fc-daygrid-day-frame {
+  box-shadow: inset 0 0 0 2px hsl(217 71% 33%);
+  border-radius: 6px;
+}
+/* número do dia de hoje como badge arredondado azul com texto branco */
+.rotas-calendar .fc-day-today .fc-daygrid-day-number {
+  background-color: hsl(217 71% 33%);
+  color: #fff;
+  border-radius: 9999px;
+  padding: 1px 7px;
+  margin: 2px;
+  font-weight: 600;
+}
+
+/* Scrollbar horizontal mais visível na tabela de rotas */
+.tabela-scroll {
+  scrollbar-width: auto;                        /* Firefox */
+  scrollbar-color: hsl(217 71% 33%) hsl(217 30% 90%);
+}
+
+.tabela-scroll::-webkit-scrollbar {
+  height: 14px;
+}
+
+.tabela-scroll::-webkit-scrollbar-track {
+  background: hsl(217 30% 90%);
+  border-radius: 7px;
+}
+
+.tabela-scroll::-webkit-scrollbar-thumb {
+  background: hsl(217 71% 33%);                  /* azul primário */
+  border-radius: 7px;
+  border: 3px solid hsl(217 30% 90%);           /* respiro nas bordas do thumb */
+}
+
+.tabela-scroll::-webkit-scrollbar-thumb:hover {
+  background: hsl(217 71% 24%);                  /* azul mais escuro no hover */
+}
+
 /* Impressão de relatórios — mostra somente #relatorio-print */
 @media print {
   body * {
@@ -77,6 +133,7 @@
     width: 100%;
     border: none;
     padding: 0;
+    margin-bottom: 1cm; /* folga na última página p/ não colidir com a legenda */
   }
 
   .no-print {
@@ -93,7 +150,7 @@
   /* Página A4 em paisagem com margens de 1cm */
   @page {
     size: A4 landscape;
-    margin: 1cm 1cm 1.6cm 1cm; /* folga inferior p/ o rodapé da legenda */
+    margin: 1cm 1cm 2.2cm 1cm; /* folga inferior p/ o rodapé da legenda */
   }
 
   /* Scroll horizontal não existe no papel — neutraliza */
@@ -149,10 +206,10 @@
     left: 0;
     right: 0;
     margin: 0;
-    padding-top: 4px;
+    padding: 6px 0;
     font-size: 9px;
     color: #000 !important;
     text-align: center;
-    background: #fff;
+    background: #fff !important;
   }
 }

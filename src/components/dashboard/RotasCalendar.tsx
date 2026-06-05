@@ -5,7 +5,9 @@ import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import type { EventClickArg, EventInput } from '@fullcalendar/core'
 import ptBrLocale from '@fullcalendar/core/locales/pt-br'
-import { formatTime, getCalendarStatusColors } from '@/lib/utils'
+import { formatTime } from '@/lib/utils'
+import { getDriverColor, getDriverBorderColor, getDriverTextColor } from '@/lib/driverColor'
+import { useCadastrosContext } from '@/context/CadastrosContext'
 import type { RotaMotorista } from '@/types/rota'
 
 interface RotasCalendarProps {
@@ -14,11 +16,11 @@ interface RotasCalendarProps {
   activeMotorista?: string
 }
 
-/** Converte registro de rota em evento FullCalendar */
-function rotaToEvent(rota: RotaMotorista): EventInput {
+/** Converte registro de rota em evento FullCalendar (idx = ordem de cadastro do motorista) */
+function rotaToEvent(rota: RotaMotorista, idx: number): EventInput {
   const start = `${rota.data}T${rota.horario_saida}`
   const end = `${rota.data}T${rota.horario_retorno}`
-  const colors = getCalendarStatusColors(rota.status)
+  const driverColor = getDriverColor(idx)
 
   return {
     id: rota.id,
@@ -26,14 +28,30 @@ function rotaToEvent(rota: RotaMotorista): EventInput {
     start,
     end,
     extendedProps: { rota },
-    backgroundColor: colors.bg,
-    borderColor: colors.border,
+    backgroundColor: driverColor, // cor única e estável por motorista
+    borderColor: driverColor,     // borda do evento = fundo (neutra)
+    textColor: getDriverTextColor(),
   }
 }
 
 /** Agenda estilo Google Calendar com visões dia/semana/mês */
 export function RotasCalendar({ rotas, onEventClick, activeMotorista }: RotasCalendarProps) {
-  const events = useMemo(() => rotas.map(rotaToEvent), [rotas])
+  const { motoristas } = useCadastrosContext()
+
+  // Índice estável por ordem de CADASTRO (created_at): motorista novo pega a próxima cor
+  const motoristaIndex = useMemo(() => {
+    const ordenados = [...motoristas].sort((a, b) =>
+      a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : 0
+    )
+    const map = new Map<string, number>()
+    ordenados.forEach((m, i) => map.set(m.nome_completo, i))
+    return map
+  }, [motoristas])
+
+  const events = useMemo(
+    () => rotas.map((r) => rotaToEvent(r, motoristaIndex.get(r.motorista) ?? -1)),
+    [rotas, motoristaIndex]
+  )
 
   const handleEventClick = (info: EventClickArg) => {
     const rota = info.event.extendedProps.rota as RotaMotorista
@@ -41,7 +59,7 @@ export function RotasCalendar({ rotas, onEventClick, activeMotorista }: RotasCal
   }
 
   return (
-    <div className="rounded-lg border bg-white p-2 md:p-4">
+    <div className="rotas-calendar rounded-lg border bg-white p-2 md:p-4">
       <FullCalendar
         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
         initialView="dayGridMonth"
@@ -58,6 +76,7 @@ export function RotasCalendar({ rotas, onEventClick, activeMotorista }: RotasCal
           day: 'Dia',
         }}
         events={events}
+        eventDisplay="block"
         eventClick={handleEventClick}
         height="auto"
         contentHeight={560}
@@ -79,8 +98,15 @@ export function RotasCalendar({ rotas, onEventClick, activeMotorista }: RotasCal
             activeMotorista === 'todos' ||
             rota.motorista === activeMotorista
 
+          // Barra lateral = tom escuro da cor do motorista (status não aparece mais no bloco)
+          const idx = motoristaIndex.get(rota.motorista) ?? -1
+          const driverBorder = getDriverBorderColor(idx)
+
           return (
-            <div className={`overflow-hidden px-1 py-0.5 text-xs leading-tight ${isActive ? '' : 'opacity-60'}`}>
+            <div
+              className={`overflow-hidden py-0.5 pl-1.5 pr-1 text-xs leading-tight ${isActive ? '' : 'opacity-60'}`}
+              style={{ borderLeft: `4px solid ${driverBorder}`, color: getDriverTextColor() }}
+            >
               <div className="font-semibold truncate">{rota.motorista}</div>
               <div className="truncate opacity-90">{rota.destino_principal}</div>
               <div className="truncate opacity-75">
