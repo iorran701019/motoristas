@@ -39,8 +39,20 @@ export async function listUsers() {
   return invokeAdminFn<AuthUserSummary[]>('list')
 }
 
-export async function createUser(email: string, password: string, isAdmin = false) {
-  return invokeAdminFn<{ ok: true }>('create', { email, password, isAdmin })
+export async function createUser(
+  email: string,
+  password: string,
+  nomeCompleto: string,
+  matricula: string,
+  isAdmin = false
+) {
+  return invokeAdminFn<{ ok: true }>('create', {
+    email,
+    password,
+    nomeCompleto,
+    matricula,
+    isAdmin,
+  })
 }
 
 export async function resetUserPassword(userId: string, newPassword: string) {

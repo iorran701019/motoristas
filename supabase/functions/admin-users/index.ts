@@ -22,6 +22,8 @@ interface RequestBody {
   action: 'list' | 'create' | 'reset_password'
   email?: string
   password?: string
+  nomeCompleto?: string
+  matricula?: string
   isAdmin?: boolean
   userId?: string
   newPassword?: string
@@ -117,17 +119,30 @@ Deno.serve(async (req) => {
       }
 
       case 'create': {
+        // Validar TUDO antes do createUser: se algo falhar aqui, nenhum usuário é
+        // criado no auth, então não há perfil órfão nem auth.user sem app_user_profiles.
         if (!body.email || !body.password) {
           return json({ error: 'E-mail e senha são obrigatórios.' }, 400)
         }
         if (body.password.length < 6) {
           return json({ error: 'A senha deve ter ao menos 6 caracteres.' }, 400)
         }
+        const nomeCompleto = (body.nomeCompleto ?? '').trim()
+        if (nomeCompleto.length < 3) {
+          return json({ error: 'O nome completo deve ter ao menos 3 caracteres.' }, 400)
+        }
+        const matricula = (body.matricula ?? '').trim()
+        if (!/^[0-9]{6}$/.test(matricula)) {
+          return json({ error: 'A matrícula deve ter exatamente 6 dígitos numéricos.' }, 400)
+        }
 
         const { data: created, error } = await admin.auth.admin.createUser({
           email: body.email,
           password: body.password,
           email_confirm: true,
+          // Espelha nome/matrícula no user_metadata para o front ler direto do
+          // AuthContext (Bloco 3) sem consultar app_user_profiles.
+          user_metadata: { nome_completo: nomeCompleto, matricula },
         })
         if (error) throw error
 
@@ -136,6 +151,23 @@ Deno.serve(async (req) => {
           .from('app_user_roles')
           .upsert({ user_id: created.user.id, role }, { onConflict: 'user_id' })
         if (roleError) throw roleError
+
+        // Perfil persistido via service role (ignora RLS). Mesmo padrão de upsert
+        // do app_user_roles. Se falhar, o usuário ficou sem perfil — avisamos no erro.
+        const { error: profileError } = await admin
+          .from('app_user_profiles')
+          .upsert(
+            { user_id: created.user.id, nome_completo: nomeCompleto, matricula },
+            { onConflict: 'user_id' }
+          )
+        if (profileError) {
+          return json(
+            {
+              error: `Usuário criado, mas falhou ao gravar o perfil: ${profileError.message}. Edite o usuário para corrigir nome/matrícula.`,
+            },
+            500
+          )
+        }
 
         return json({ ok: true })
       }

@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
 import { createUser, listUsers, resetUserPassword } from '@/lib/admin-users'
+import { usuarioFormSchema } from '@/lib/validations/usuario'
 import type { AuthUserSummary } from '@/types/rota'
 
 export function AdminPage() {
@@ -15,6 +16,8 @@ export function AdminPage() {
   const [loading, setLoading] = useState(true)
   const [newEmail, setNewEmail] = useState('')
   const [newPassword, setNewPassword] = useState('')
+  const [newNomeCompleto, setNewNomeCompleto] = useState('')
+  const [newMatricula, setNewMatricula] = useState('')
   const [isAdmin, setIsAdmin] = useState(false)
   const [resetPasswords, setResetPasswords] = useState<Record<string, string>>({})
   const [submittingCreate, setSubmittingCreate] = useState(false)
@@ -43,8 +46,31 @@ export function AdminPage() {
 
   const handleCreate = async (event: React.FormEvent) => {
     event.preventDefault()
+
+    const parsed = usuarioFormSchema.safeParse({
+      email: newEmail,
+      password: newPassword,
+      nome_completo: newNomeCompleto,
+      matricula: newMatricula,
+      isAdmin,
+    })
+    if (!parsed.success) {
+      toast({
+        variant: 'destructive',
+        title: 'Dados inválidos',
+        description: parsed.error.issues[0]?.message ?? 'Verifique os campos do formulário.',
+      })
+      return
+    }
+
     setSubmittingCreate(true)
-    const { error } = await createUser(newEmail, newPassword, isAdmin)
+    const { error } = await createUser(
+      parsed.data.email,
+      parsed.data.password,
+      parsed.data.nome_completo,
+      parsed.data.matricula,
+      parsed.data.isAdmin
+    )
     setSubmittingCreate(false)
 
     if (error) {
@@ -63,6 +89,8 @@ export function AdminPage() {
     })
     setNewEmail('')
     setNewPassword('')
+    setNewNomeCompleto('')
+    setNewMatricula('')
     setIsAdmin(false)
     fetchUsers()
   }
@@ -110,6 +138,30 @@ export function AdminPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleCreate} className="grid gap-4 md:grid-cols-4">
+            <div className="md:col-span-3">
+              <Label htmlFor="new-nome">Nome completo</Label>
+              <Input
+                id="new-nome"
+                type="text"
+                value={newNomeCompleto}
+                onChange={(e) => setNewNomeCompleto(e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="new-matricula">Matrícula</Label>
+              <Input
+                id="new-matricula"
+                inputMode="numeric"
+                maxLength={6}
+                placeholder="Ex.: 123456"
+                value={newMatricula}
+                onChange={(e) =>
+                  setNewMatricula(e.target.value.replace(/\D/g, '').slice(0, 6))
+                }
+                required
+              />
+            </div>
             <div className="md:col-span-2">
               <Label htmlFor="new-email">E-mail</Label>
               <Input
