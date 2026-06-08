@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { AlertCircle } from 'lucide-react'
+import { AlertCircle, Loader2 } from 'lucide-react'
 import { RotasCalendar } from '@/components/dashboard/RotasCalendar'
 import { RotaDetailModal } from '@/components/dashboard/RotaDetailModal'
 import { RotasTable } from '@/components/dashboard/RotasTable'
@@ -18,7 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 /** Tela 2 — Painel / Dashboard */
 export function DashboardPage() {
-  const { rotas, error } = useRotasContext()
+  const { rotas, error, loading } = useRotasContext()
   const [selectedRota, setSelectedRota] = useState<RotaMotorista | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [motoristaFilter, setMotoristaFilter] = useState('todos')
@@ -54,36 +54,45 @@ export function DashboardPage() {
         </div>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Agenda de Rotas</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-3 md:grid-cols-2">
-            <Select value={motoristaFilter} onValueChange={setMotoristaFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="Filtrar por motorista" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos os motoristas</SelectItem>
-                {motoristas.map((motorista) => (
-                  <SelectItem key={motorista} value={motorista}>
-                    {motorista}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+      {loading ? (
+        <div className="flex items-center justify-center gap-2 rounded-lg border bg-white px-4 py-12 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Carregando rotas...
+        </div>
+      ) : (
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Agenda de Rotas</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-3 md:grid-cols-2">
+                <Select value={motoristaFilter} onValueChange={setMotoristaFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filtrar por motorista" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos os motoristas</SelectItem>
+                    {motoristas.map((motorista) => (
+                      <SelectItem key={motorista} value={motorista}>
+                        {motorista}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-          <RotasCalendar
-            rotas={filteredRotas}
-            onEventClick={openDetail}
-            activeMotorista={motoristaFilter}
-          />
-        </CardContent>
-      </Card>
+              <RotasCalendar
+                rotas={filteredRotas}
+                onEventClick={openDetail}
+                activeMotorista={motoristaFilter}
+              />
+            </CardContent>
+          </Card>
 
-      <RotasTable rotas={filteredRotas} onRowClick={openDetail} />
+          <RotasTable rotas={filteredRotas} onRowClick={openDetail} />
+        </>
+      )}
 
       <RotaDetailModal
         rota={selectedRota}

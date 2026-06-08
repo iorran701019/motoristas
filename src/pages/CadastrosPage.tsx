@@ -1,4 +1,4 @@
-import { Bus, Trash2, Users } from 'lucide-react'
+import { AlertCircle, Bus, Trash2, Users } from 'lucide-react'
 import { MotoristaForm } from '@/components/cadastros/MotoristaForm'
 import { VeiculoForm } from '@/components/cadastros/VeiculoForm'
 import { SupabaseConfigAlert } from '@/components/SupabaseConfigAlert'
@@ -10,7 +10,8 @@ import { useToast } from '@/hooks/use-toast'
 
 /** Tela de gestão de motoristas e veículos (acesso a todos os usuários) */
 export function CadastrosPage() {
-  const { motoristas, veiculos, loading, deleteMotorista, deleteVeiculo } = useCadastrosContext()
+  const { motoristas, veiculos, loading, error, deleteMotorista, deleteVeiculo } =
+    useCadastrosContext()
   const { isAdmin } = useAuth()
   const { toast } = useToast()
 
@@ -37,6 +38,13 @@ export function CadastrosPage() {
   return (
     <div className="space-y-6">
       <SupabaseConfigAlert />
+
+      {error && (
+        <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          <span>Erro ao carregar dados: {error}</span>
+        </div>
+      )}
 
       {/* Motoristas */}
       <Card>

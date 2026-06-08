@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AdminRoute, ProtectedRoute } from '@/components/auth/ProtectedRoute'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { Toaster } from '@/components/ui/toaster'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { AuthProvider } from '@/context/AuthContext'
@@ -22,30 +23,32 @@ function App() {
       <AuthProvider>
         <CadastrosProvider>
           <RotasProvider>
-            <Routes>
-              <Route path="/login" element={<LoginPage />} />
-              <Route
-                element={
-                  <ProtectedRoute>
-                    <AppLayout />
-                  </ProtectedRoute>
-                }
-              >
-                <Route path="/" element={<CadastroPage />} />
-                <Route path="/dashboard" element={<DashboardPage />} />
-                <Route path="/cadastros" element={<CadastrosPage />} />
-                <Route path="/relatorio" element={<RelatorioPage />} />
+            <ErrorBoundary>
+              <Routes>
+                <Route path="/login" element={<LoginPage />} />
                 <Route
-                  path="/admin"
                   element={
-                    <AdminRoute>
-                      <AdminPage />
-                    </AdminRoute>
+                    <ProtectedRoute>
+                      <AppLayout />
+                    </ProtectedRoute>
                   }
-                />
-              </Route>
-              <Route path="*" element={<Navigate to="/dashboard" replace />} />
-            </Routes>
+                >
+                  <Route path="/" element={<CadastroPage />} />
+                  <Route path="/dashboard" element={<DashboardPage />} />
+                  <Route path="/cadastros" element={<CadastrosPage />} />
+                  <Route path="/relatorio" element={<RelatorioPage />} />
+                  <Route
+                    path="/admin"
+                    element={
+                      <AdminRoute>
+                        <AdminPage />
+                      </AdminRoute>
+                    }
+                  />
+                </Route>
+                <Route path="*" element={<Navigate to="/dashboard" replace />} />
+              </Routes>
+            </ErrorBoundary>
             <Toaster />
           </RotasProvider>
         </CadastrosProvider>
