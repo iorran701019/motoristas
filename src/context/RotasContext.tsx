@@ -1,6 +1,11 @@
 import { createContext, useContext, type ReactNode } from 'react'
 import { useRotas } from '@/hooks/useRotas'
-import type { DashboardStats, RotaMotorista, RotaMotoristaInsert } from '@/types/rota'
+import type {
+  DashboardStats,
+  RotaMotorista,
+  RotaMotoristaInsert,
+  RotaStatus,
+} from '@/types/rota'
 
 interface RotasContextValue {
   rotas: RotaMotorista[]
@@ -9,6 +14,9 @@ interface RotasContextValue {
   error: string | null
   refetch: () => Promise<void>
   createRota: (data: RotaMotoristaInsert) => Promise<{ error: string | null }>
+  updateRota: (id: string, data: RotaMotoristaInsert) => Promise<{ error: string | null }>
+  updateRotaStatus: (id: string, status: RotaStatus) => Promise<{ error: string | null }>
+  deleteRota: (id: string) => Promise<{ error: string | null }>
 }
 
 const RotasContext = createContext<RotasContextValue | null>(null)

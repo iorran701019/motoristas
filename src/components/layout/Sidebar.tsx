@@ -1,24 +1,34 @@
 import { NavLink } from 'react-router-dom'
 import {
+  ShieldCheck,
   Bus,
+  FileText,
   LayoutDashboard,
   Route,
+  Users,
   X,
+  LogOut,
 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/context/AuthContext'
 
 interface SidebarProps {
   open: boolean
   onClose: () => void
 }
 
-const navItems = [
-  { to: '/', label: 'Cadastro de Rotas', icon: Route },
-  { to: '/dashboard', label: 'Painel / Dashboard', icon: LayoutDashboard },
-]
-
 /** Barra lateral de navegação — responsiva com overlay em mobile */
 export function Sidebar({ open, onClose }: SidebarProps) {
+  const { isAdmin, signOut } = useAuth()
+  const navItems = [
+    { to: '/', label: 'Cadastro de Rotas', icon: Route },
+    { to: '/dashboard', label: 'Painel', icon: LayoutDashboard },
+    { to: '/cadastros', label: 'Motoristas e Veículos', icon: Users },
+    { to: '/relatorio', label: 'Relatórios', icon: FileText },
+    ...(isAdmin ? [{ to: '/admin', label: 'Administração', icon: ShieldCheck }] : []),
+  ]
+
   return (
     <>
       {open && (
@@ -79,6 +89,19 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             Secretaria Municipal de Educação
           </p>
           <p className="mt-1 text-xs text-institucional-500">v1.0 — MVP</p>
+
+          {/* Botão de logout — visível apenas no mobile (no desktop o Header já tem) */}
+          <Button
+            variant="ghost"
+            onClick={() => {
+              signOut()
+              onClose()
+            }}
+            className="mt-3 w-full justify-start gap-3 text-institucional-200 hover:bg-institucional-700 hover:text-white lg:hidden"
+          >
+            <LogOut className="h-5 w-5 shrink-0" />
+            Sair
+          </Button>
         </div>
       </aside>
     </>

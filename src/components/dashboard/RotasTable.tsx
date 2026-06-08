@@ -3,12 +3,13 @@ import {
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
+  getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
   type ColumnDef,
   type SortingState,
 } from '@tanstack/react-table'
-import { ArrowUpDown, Search } from 'lucide-react'
+import { ArrowUpDown, Search, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -20,12 +21,54 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { formatDateBR, formatTime } from '@/lib/utils'
-import type { RotaMotorista } from '@/types/rota'
+import { useRotasContext } from '@/context/RotasContext'
+import { useAuth } from '@/context/AuthContext'
+import { useToast } from '@/hooks/use-toast'
+import { cn, formatDateBR, formatTime, getStatusClasses } from '@/lib/utils'
+import { STATUS_OPTIONS, type RotaMotorista, type RotaStatus } from '@/types/rota'
 
 interface RotasTableProps {
   rotas: RotaMotorista[]
   onRowClick?: (rota: RotaMotorista) => void
+}
+
+/** Trunca o texto exibido na tabela; o valor completo fica no modal de detalhes. */
+function truncar(value: unknown) {
+  const v = String(value ?? '')
+  return v.length > 12 ? v.slice(0, 12) + '...' : v
+}
+
+/** Seletor de status inline — altera o status direto na linha do histórico */
+function StatusCell({ rota }: { rota: RotaMotorista }) {
+  const { updateRotaStatus } = useRotasContext()
+  const { toast } = useToast()
+
+  const handleChange = async (value: string) => {
+    const { error } = await updateRotaStatus(rota.id, value as RotaStatus)
+    if (error) {
+      toast({ variant: 'destructive', title: 'Erro ao atualizar status', description: error })
+    }
+  }
+
+  // stopPropagation evita abrir o modal de detalhes ao interagir com o select
+  return (
+    <div onClick={(e) => e.stopPropagation()}>
+      <Select value={rota.status} onValueChange={handleChange}>
+        <SelectTrigger
+          className={cn('h-8 w-36 border font-medium', getStatusClasses(rota.status))}
+        >
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {STATUS_OPTIONS.map((s) => (
+            <SelectItem key={s} value={s}>
+              {s}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  )
 }
 
 /** Tabela de rotas com busca, ordenação e filtros */
@@ -34,6 +77,19 @@ export function RotasTable({ rotas, onRowClick }: RotasTableProps) {
   const [globalFilter, setGlobalFilter] = useState('')
   const [filtroData, setFiltroData] = useState('')
   const [filtroMotorista, setFiltroMotorista] = useState('todos')
+  const { deleteRota } = useRotasContext()
+  const { isAdmin } = useAuth()
+  const { toast } = useToast()
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Excluir esta rota? Esta ação não pode ser desfeita.')) return
+    const { error } = await deleteRota(id)
+    if (error) {
+      toast({ variant: 'destructive', title: 'Erro ao excluir', description: error })
+      return
+    }
+    toast({ variant: 'success', title: 'Rota excluída' })
+  }
 
   const motoristas = useMemo(
     () => [...new Set(rotas.map((r) => r.motorista))].sort(),
@@ -66,8 +122,22 @@ export function RotasTable({ rotas, onRowClick }: RotasTableProps) {
         cell: ({ row }) => formatDateBR(row.original.data),
       },
       { accessorKey: 'motorista', header: 'Motorista' },
+      {
+        accessorKey: 'status',
+        header: 'Status',
+        cell: ({ row }) => <StatusCell rota={row.original} />,
+      },
       { accessorKey: 'placa_veiculo', header: 'Placa' },
-      { accessorKey: 'destino_principal', header: 'Destino' },
+      {
+        accessorKey: 'destino_principal',
+        header: 'Destino',
+        cell: ({ getValue }) => truncar(getValue()),
+      },
+      {
+        accessorKey: 'rota_descricao',
+        header: 'Rota / Trajeto',
+        cell: ({ getValue }) => truncar(getValue()),
+      },
       {
         accessorKey: 'horario_saida',
         header: 'Saída',
@@ -79,9 +149,30 @@ export function RotasTable({ rotas, onRowClick }: RotasTableProps) {
         cell: ({ row }) => formatTime(row.original.horario_retorno),
       },
       { accessorKey: 'qtd_passageiros', header: 'Pass.' },
-      { accessorKey: 'responsavel_solicitacao', header: 'Responsável' },
+      {
+        accessorKey: 'responsavel_solicitacao',
+        header: 'Responsável',
+        cell: ({ getValue }) => truncar(getValue()),
+      },
+      {
+        id: 'acoes',
+        header: 'Ações',
+        cell: ({ row }) =>
+          isAdmin ? (
+            <div onClick={(e) => e.stopPropagation()}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleDelete(row.original.id)}
+                aria-label="Excluir rota"
+              >
+                <Trash2 className="h-4 w-4 text-destructive" />
+              </Button>
+            </div>
+          ) : null,
+      },
     ],
-    []
+    [isAdmin]
   )
 
   const table = useReactTable({
@@ -93,12 +184,15 @@ export function RotasTable({ rotas, onRowClick }: RotasTableProps) {
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    initialState: { pagination: { pageSize: 15 } },
     globalFilterFn: (row, _columnId, filterValue) => {
       const search = String(filterValue).toLowerCase()
       const r = row.original
       return (
         r.motorista.toLowerCase().includes(search) ||
         r.destino_principal.toLowerCase().includes(search) ||
+        r.status.toLowerCase().includes(search) ||
         r.placa_veiculo.toLowerCase().includes(search) ||
         r.rota_descricao.toLowerCase().includes(search) ||
         r.responsavel_solicitacao.toLowerCase().includes(search)
@@ -153,7 +247,7 @@ export function RotasTable({ rotas, onRowClick }: RotasTableProps) {
           </div>
         </div>
 
-        <div className="overflow-x-auto rounded-md border">
+        <div className="tabela-scroll overflow-x-auto rounded-md border">
           <table className="w-full text-sm">
             <thead className="bg-muted/50">
               {table.getHeaderGroups().map((hg) => (
@@ -200,9 +294,35 @@ export function RotasTable({ rotas, onRowClick }: RotasTableProps) {
           </table>
         </div>
 
-        <p className="text-xs text-muted-foreground">
-          {table.getRowModel().rows.length} registro(s) exibido(s)
-        </p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          {table.getPageCount() > 0 && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => table.previousPage()}
+                disabled={!table.getCanPreviousPage()}
+              >
+                Anterior
+              </Button>
+              <span className="text-xs text-muted-foreground">
+                Página {table.getState().pagination.pageIndex + 1} de {table.getPageCount()}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => table.nextPage()}
+                disabled={!table.getCanNextPage()}
+              >
+                Próxima
+              </Button>
+            </div>
+          )}
+
+          <p className="text-xs text-muted-foreground">
+            {table.getFilteredRowModel().rows.length} registro(s) exibido(s)
+          </p>
+        </div>
       </CardContent>
     </Card>
   )

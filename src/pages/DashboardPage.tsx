@@ -1,37 +1,98 @@
-import { useState } from 'react'
-import { AlertCircle } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { AlertCircle, Loader2 } from 'lucide-react'
 import { RotasCalendar } from '@/components/dashboard/RotasCalendar'
 import { RotaDetailModal } from '@/components/dashboard/RotaDetailModal'
 import { RotasTable } from '@/components/dashboard/RotasTable'
-import { StatsCards } from '@/components/dashboard/StatsCards'
+import { SupabaseConfigAlert } from '@/components/SupabaseConfigAlert'
 import { useRotasContext } from '@/context/RotasContext'
+import { getSupabaseConfig } from '@/lib/supabase-config'
 import type { RotaMotorista } from '@/types/rota'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 /** Tela 2 — Painel / Dashboard */
 export function DashboardPage() {
-  const { rotas, stats, loading, error } = useRotasContext()
+  const { rotas, error, loading } = useRotasContext()
   const [selectedRota, setSelectedRota] = useState<RotaMotorista | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
+  const [motoristaFilter, setMotoristaFilter] = useState('todos')
 
   const openDetail = (rota: RotaMotorista) => {
     setSelectedRota(rota)
     setModalOpen(true)
   }
 
+  const configOk = getSupabaseConfig().isConfigured
+  const motoristas = useMemo(
+    () => Array.from(new Set(rotas.map((r) => r.motorista))).sort(),
+    [rotas]
+  )
+
+  const filteredRotas = useMemo(
+    () =>
+      rotas.filter((rota) => {
+        if (motoristaFilter !== 'todos' && rota.motorista !== motoristaFilter) return false
+        return true
+      }),
+    [rotas, motoristaFilter]
+  )
+
   return (
     <div className="space-y-6">
-      {error && (
+      <SupabaseConfigAlert />
+
+      {error && configOk && (
         <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           <AlertCircle className="h-4 w-4 shrink-0" />
           <span>Erro ao carregar dados: {error}</span>
         </div>
       )}
 
-      <StatsCards stats={stats} loading={loading} />
+      {loading ? (
+        <div className="flex items-center justify-center gap-2 rounded-lg border bg-white px-4 py-12 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Carregando rotas...
+        </div>
+      ) : (
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Agenda de Rotas</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-3 md:grid-cols-2">
+                <Select value={motoristaFilter} onValueChange={setMotoristaFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filtrar por motorista" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos os motoristas</SelectItem>
+                    {motoristas.map((motorista) => (
+                      <SelectItem key={motorista} value={motorista}>
+                        {motorista}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-      <RotasTable rotas={rotas} onRowClick={openDetail} />
+              <RotasCalendar
+                rotas={filteredRotas}
+                onEventClick={openDetail}
+                activeMotorista={motoristaFilter}
+              />
+            </CardContent>
+          </Card>
 
-      <RotasCalendar rotas={rotas} onEventClick={openDetail} />
+          <RotasTable rotas={filteredRotas} onRowClick={openDetail} />
+        </>
+      )}
 
       <RotaDetailModal
         rota={selectedRota}

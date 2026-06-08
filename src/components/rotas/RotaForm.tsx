@@ -1,9 +1,17 @@
-import { useMemo } from 'react'
+import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Loader2, Plus } from 'lucide-react'
+import { AlertTriangle, Loader2, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -17,22 +25,13 @@ import { Textarea } from '@/components/ui/textarea'
 import { useRotasContext } from '@/context/RotasContext'
 import { useToast } from '@/hooks/use-toast'
 import { rotaFormSchema, type RotaFormValues } from '@/lib/validations/rota'
-import { todayISO } from '@/lib/utils'
-
-const TIPOS_VEICULO = [
-  'Van',
-  'Micro-ônibus',
-  'Ônibus',
-  'Carro',
-  'Utilitário',
-  'Outro',
-]
+import { formatDateBR, formatTime, intervalosSobrepoem, todayISO } from '@/lib/utils'
+import type { Motorista, RotaMotorista, RotaMotoristaInsert, Veiculo } from '@/types/rota'
 
 const defaultValues: RotaFormValues = {
   motorista: '',
   data: todayISO(),
   placa_veiculo: '',
-  tipo_veiculo: '',
   rota_descricao: '',
   destino_principal: '',
   horario_saida: '',
@@ -43,14 +42,21 @@ const defaultValues: RotaFormValues = {
 }
 
 interface RotaFormProps {
-  /** Placas já cadastradas — base para autocomplete futuro */
-  placasExistentes?: string[]
+  /** Motoristas cadastrados — base do seletor de motorista */
+  motoristas?: Motorista[]
+  /** Veículos cadastrados — base do seletor de placa */
+  veiculos?: Veiculo[]
 }
 
 /** Formulário de cadastro de rotas inspirado na planilha SME */
-export function RotaForm({ placasExistentes = [] }: RotaFormProps) {
-  const { createRota } = useRotasContext()
+export function RotaForm({ motoristas = [], veiculos = [] }: RotaFormProps) {
+  const { rotas, createRota, updateRota } = useRotasContext()
   const { toast } = useToast()
+
+  // Estado do pop-up de conflito de horário
+  const [conflito, setConflito] = useState<RotaMotorista | null>(null)
+  const [pendingPayload, setPendingPayload] = useState<RotaMotoristaInsert | null>(null)
+  const [substituindo, setSubstituindo] = useState(false)
 
   const {
     register,
@@ -64,45 +70,103 @@ export function RotaForm({ placasExistentes = [] }: RotaFormProps) {
     defaultValues,
   })
 
-  const tipoVeiculo = watch('tipo_veiculo')
+  const motoristaSelecionado = watch('motorista')
+  const placaSelecionada = watch('placa_veiculo')
 
-  // datalist para autocomplete de placas (extensível)
-  const placasUnicas = useMemo(
-    () => [...new Set(placasExistentes.map((p) => p.toUpperCase()))].sort(),
-    [placasExistentes]
-  )
+  const semCadastros = motoristas.length === 0 || veiculos.length === 0
+
+  const limparForm = () => reset({ ...defaultValues, data: todayISO() })
+
+  const buildPayload = (values: RotaFormValues): RotaMotoristaInsert => ({
+    motorista: values.motorista.trim(),
+    data: values.data,
+    placa_veiculo: values.placa_veiculo,
+    rota_descricao: values.rota_descricao.trim(),
+    destino_principal: values.destino_principal.trim(),
+    horario_saida: values.horario_saida,
+    horario_retorno: values.horario_retorno,
+    qtd_passageiros: values.qtd_passageiros,
+    // Toda rota nasce Agendada; status muda no Histórico de trajetos.
+    status: 'Agendada',
+    responsavel_solicitacao: values.responsavel_solicitacao.trim(),
+    observacoes: values.observacoes?.trim() || null,
+  })
+
+  const salvarNovo = async (payload: RotaMotoristaInsert) => {
+    const { error } = await createRota(payload)
+    if (error) {
+      toast({ variant: 'destructive', title: 'Erro ao salvar', description: error })
+      return
+    }
+    toast({
+      variant: 'success',
+      title: 'Registro salvo com sucesso!',
+      description: `Rota de ${payload.motorista} em ${payload.data} foi cadastrada.`,
+    })
+    limparForm()
+  }
 
   const onSubmit = async (values: RotaFormValues) => {
-    const { error } = await createRota({
-      motorista: values.motorista.trim(),
-      data: values.data,
-      placa_veiculo: values.placa_veiculo,
-      tipo_veiculo: values.tipo_veiculo,
-      rota_descricao: values.rota_descricao.trim(),
-      destino_principal: values.destino_principal.trim(),
-      horario_saida: values.horario_saida,
-      horario_retorno: values.horario_retorno,
-      qtd_passageiros: values.qtd_passageiros,
-      responsavel_solicitacao: values.responsavel_solicitacao.trim(),
-      observacoes: values.observacoes?.trim() || null,
-    })
-
-    if (error) {
+    // Horário de retorno precisa ser depois da saída
+    if (formatTime(values.horario_retorno) <= formatTime(values.horario_saida)) {
       toast({
         variant: 'destructive',
-        title: 'Erro ao salvar',
-        description: error,
+        title: 'Horário inválido',
+        description: 'O horário de retorno deve ser depois do horário de saída.',
       })
       return
     }
 
+    const payload = buildPayload(values)
+
+    // Verifica conflito de horário do mesmo motorista na mesma data
+    // (ignora rotas canceladas, que não ocupam a agenda).
+    const rotaConflitante = rotas.find(
+      (r) =>
+        r.status !== 'Cancelada' &&
+        r.data === values.data &&
+        r.motorista.trim().toLowerCase() === values.motorista.trim().toLowerCase() &&
+        intervalosSobrepoem(
+          values.horario_saida,
+          values.horario_retorno,
+          r.horario_saida,
+          r.horario_retorno
+        )
+    )
+
+    if (rotaConflitante) {
+      // Abre o pop-up para o usuário decidir: cancelar ou substituir
+      setConflito(rotaConflitante)
+      setPendingPayload(payload)
+      return
+    }
+
+    await salvarNovo(payload)
+  }
+
+  const fecharDialogo = () => {
+    setConflito(null)
+    setPendingPayload(null)
+  }
+
+  // "Substituir o antigo": sobrescreve a rota conflitante com os novos dados
+  const handleSubstituir = async () => {
+    if (!conflito || !pendingPayload) return
+    setSubstituindo(true)
+    const { error } = await updateRota(conflito.id, pendingPayload)
+    setSubstituindo(false)
+
+    if (error) {
+      toast({ variant: 'destructive', title: 'Erro ao substituir', description: error })
+      return
+    }
     toast({
       variant: 'success',
-      title: 'Registro salvo com sucesso!',
-      description: `Rota de ${values.motorista} em ${values.data} foi cadastrada.`,
+      title: 'Rota substituída',
+      description: `A rota anterior de ${pendingPayload.motorista} foi atualizada.`,
     })
-
-    reset({ ...defaultValues, data: todayISO() })
+    fecharDialogo()
+    limparForm()
   }
 
   const fieldError = (name: keyof RotaFormValues) =>
@@ -122,14 +186,38 @@ export function RotaForm({ placasExistentes = [] }: RotaFormProps) {
       </CardHeader>
 
       <CardContent className="pt-6">
+        {semCadastros && (
+          <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            Cadastre{' '}
+            <Link to="/cadastros" className="font-medium underline">
+              motoristas e veículos
+            </Link>{' '}
+            antes de registrar uma rota — eles aparecem nos campos de seleção abaixo.
+          </div>
+        )}
+
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* Linha 1: Motorista, Data, Placa */}
           <div className="grid gap-4 md:grid-cols-3">
             <div className="space-y-2">
-              <Label htmlFor="motorista">
+              <Label>
                 Motorista <span className="text-destructive">*</span>
               </Label>
-              <Input id="motorista" placeholder="Nome do motorista" {...register('motorista')} />
+              <Select
+                value={motoristaSelecionado}
+                onValueChange={(v) => setValue('motorista', v, { shouldValidate: true })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o motorista" />
+                </SelectTrigger>
+                <SelectContent>
+                  {motoristas.map((m) => (
+                    <SelectItem key={m.id} value={m.nome_completo}>
+                      {m.nome_completo} — {m.matricula}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               {fieldError('motorista')}
             </div>
 
@@ -142,56 +230,38 @@ export function RotaForm({ placasExistentes = [] }: RotaFormProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="placa_veiculo">
+              <Label>
                 Placa do Veículo <span className="text-destructive">*</span>
               </Label>
-              <Input
-                id="placa_veiculo"
-                list="placas-list"
-                placeholder="ABC1D23"
-                className="uppercase"
-                {...register('placa_veiculo')}
-              />
-              <datalist id="placas-list">
-                {placasUnicas.map((placa) => (
-                  <option key={placa} value={placa} />
-                ))}
-              </datalist>
-              {fieldError('placa_veiculo')}
-            </div>
-          </div>
-
-          {/* Linha 2: Tipo, Rota, Destino */}
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="space-y-2">
-              <Label>
-                Tipo de Veículo <span className="text-destructive">*</span>
-              </Label>
               <Select
-                value={tipoVeiculo}
-                onValueChange={(v) => setValue('tipo_veiculo', v, { shouldValidate: true })}
+                value={placaSelecionada}
+                onValueChange={(v) => setValue('placa_veiculo', v, { shouldValidate: true })}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione o tipo" />
+                  <SelectValue placeholder="Selecione a placa" />
                 </SelectTrigger>
                 <SelectContent>
-                  {TIPOS_VEICULO.map((tipo) => (
-                    <SelectItem key={tipo} value={tipo}>
-                      {tipo}
+                  {veiculos.map((v) => (
+                    <SelectItem key={v.id} value={v.placa}>
+                      {v.placa} — {v.modelo} ({v.cor})
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              {fieldError('tipo_veiculo')}
+              {fieldError('placa_veiculo')}
             </div>
+          </div>
 
-            <div className="space-y-2 md:col-span-2">
+          {/* Linha 2: Rota */}
+          <div className="grid gap-4">
+            <div className="space-y-2">
               <Label htmlFor="rota_descricao">
                 Rota / Descrição do Trajeto <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="rota_descricao"
                 placeholder="Ex.: SME → Unidade Escolar Centro"
+                maxLength={60}
                 {...register('rota_descricao')}
               />
               {fieldError('rota_descricao')}
@@ -205,12 +275,13 @@ export function RotaForm({ placasExistentes = [] }: RotaFormProps) {
             <Input
               id="destino_principal"
               placeholder="Destino principal da viagem"
+              maxLength={30}
               {...register('destino_principal')}
             />
             {fieldError('destino_principal')}
           </div>
 
-          {/* Linha 3: Horários e Passageiros */}
+          {/* Linha 3: Horários, Passageiros e Responsável */}
           <div className="grid gap-4 md:grid-cols-4">
             <div className="space-y-2">
               <Label htmlFor="horario_saida">
@@ -235,7 +306,8 @@ export function RotaForm({ placasExistentes = [] }: RotaFormProps) {
               <Input
                 id="qtd_passageiros"
                 type="number"
-                min={0}
+                min={1}
+                max={4}
                 {...register('qtd_passageiros')}
               />
               {fieldError('qtd_passageiros')}
@@ -243,11 +315,12 @@ export function RotaForm({ placasExistentes = [] }: RotaFormProps) {
 
             <div className="space-y-2">
               <Label htmlFor="responsavel_solicitacao">
-                Responsável pela Solicitação <span className="text-destructive">*</span>
+                Responsável <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="responsavel_solicitacao"
                 placeholder="Nome do responsável"
+                maxLength={30}
                 {...register('responsavel_solicitacao')}
               />
               {fieldError('responsavel_solicitacao')}
@@ -264,7 +337,10 @@ export function RotaForm({ placasExistentes = [] }: RotaFormProps) {
             />
           </div>
 
-          <div className="flex justify-end border-t pt-4">
+          <div className="flex items-center justify-end gap-3 border-t pt-4">
+            <p className="mr-auto text-xs text-muted-foreground">
+              A rota será registrada com status <strong>Agendada</strong>.
+            </p>
             <Button type="submit" size="lg" disabled={isSubmitting} className="min-w-[200px]">
               {isSubmitting ? (
                 <>
@@ -281,6 +357,63 @@ export function RotaForm({ placasExistentes = [] }: RotaFormProps) {
           </div>
         </form>
       </CardContent>
+
+      {/* Pop-up de conflito de horário */}
+      <Dialog open={conflito !== null} onOpenChange={(open) => !open && fecharDialogo()}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-amber-700">
+              <AlertTriangle className="h-5 w-5" />
+              Conflito de horário
+            </DialogTitle>
+            <DialogDescription>
+              Este motorista já tem uma rota que se sobrepõe a este horário.
+            </DialogDescription>
+          </DialogHeader>
+
+          {conflito && pendingPayload && (
+            <div className="space-y-3 text-sm">
+              <div className="rounded-md border border-amber-200 bg-amber-50 p-3">
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-amber-700">
+                  Rota já existente
+                </p>
+                <p className="font-medium">{conflito.motorista}</p>
+                <p className="text-muted-foreground">
+                  {formatDateBR(conflito.data)} · {formatTime(conflito.horario_saida)} às{' '}
+                  {formatTime(conflito.horario_retorno)}
+                </p>
+                <p className="text-muted-foreground">
+                  {conflito.rota_descricao} → {conflito.destino_principal}
+                </p>
+              </div>
+
+              <div className="rounded-md border bg-muted/30 p-3">
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Novo cadastro
+                </p>
+                <p className="font-medium">{pendingPayload.motorista}</p>
+                <p className="text-muted-foreground">
+                  {formatDateBR(pendingPayload.data)} · {formatTime(pendingPayload.horario_saida)}{' '}
+                  às {formatTime(pendingPayload.horario_retorno)}
+                </p>
+                <p className="text-muted-foreground">
+                  {pendingPayload.rota_descricao} → {pendingPayload.destino_principal}
+                </p>
+              </div>
+            </div>
+          )}
+
+          <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+            <Button variant="outline" onClick={fecharDialogo} disabled={substituindo}>
+              Cancelar novo cadastro
+            </Button>
+            <Button onClick={handleSubstituir} disabled={substituindo}>
+              {substituindo ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Substituir o antigo
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   )
 }

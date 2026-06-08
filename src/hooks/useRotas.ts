@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase, TABLE_ROTAS } from '@/lib/supabase'
+import { logAction } from '@/lib/audit'
+import { getSupabaseConfig } from '@/lib/supabase-config'
 import { todayISO } from '@/lib/utils'
-import type { DashboardStats, RotaMotorista, RotaMotoristaInsert } from '@/types/rota'
+import type {
+  DashboardStats,
+  RotaMotorista,
+  RotaMotoristaInsert,
+  RotaStatus,
+} from '@/types/rota'
 
 interface UseRotasReturn {
   rotas: RotaMotorista[]
@@ -10,6 +17,9 @@ interface UseRotasReturn {
   error: string | null
   refetch: () => Promise<void>
   createRota: (data: RotaMotoristaInsert) => Promise<{ error: string | null }>
+  updateRota: (id: string, data: RotaMotoristaInsert) => Promise<{ error: string | null }>
+  updateRotaStatus: (id: string, status: RotaStatus) => Promise<{ error: string | null }>
+  deleteRota: (id: string) => Promise<{ error: string | null }>
 }
 
 /** Calcula estatísticas do dashboard a partir da lista de rotas */
@@ -38,6 +48,16 @@ export function useRotas(): UseRotasReturn {
     setLoading(true)
     setError(null)
 
+    const config = getSupabaseConfig()
+    if (!config.isConfigured) {
+      setError(
+        'Configure o arquivo .env com VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY, depois reinicie npm run dev'
+      )
+      setRotas([])
+      setLoading(false)
+      return
+    }
+
     const { data, error: fetchError } = await supabase
       .from(TABLE_ROTAS)
       .select('*')
@@ -59,10 +79,70 @@ export function useRotas(): UseRotasReturn {
   }, [fetchRotas])
 
   const createRota = async (payload: RotaMotoristaInsert) => {
-    const { error: insertError } = await supabase.from(TABLE_ROTAS).insert(payload)
+    const { data, error: insertError } = await supabase
+      .from(TABLE_ROTAS)
+      .insert(payload)
+      .select('id')
+      .single()
 
     if (insertError) {
       return { error: insertError.message }
+    }
+
+    void logAction({
+      action: 'rota.created',
+      entity: 'rota',
+      entityId: data?.id,
+      details: {
+        motorista: payload.motorista,
+        destino_principal: payload.destino_principal,
+        data: payload.data,
+      },
+    })
+
+    await fetchRotas()
+    return { error: null }
+  }
+
+  const updateRota = async (id: string, payload: RotaMotoristaInsert) => {
+    const { error: updateError } = await supabase
+      .from(TABLE_ROTAS)
+      .update(payload)
+      .eq('id', id)
+
+    if (updateError) {
+      return { error: updateError.message }
+    }
+
+    await fetchRotas()
+    return { error: null }
+  }
+
+  const updateRotaStatus = async (id: string, status: RotaStatus) => {
+    // Atualização otimista para resposta imediata no dropdown
+    setRotas((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)))
+
+    const { error: updateError } = await supabase
+      .from(TABLE_ROTAS)
+      .update({ status })
+      .eq('id', id)
+
+    if (updateError) {
+      await fetchRotas() // reverte ao estado real do banco
+      return { error: updateError.message }
+    }
+
+    return { error: null }
+  }
+
+  const deleteRota = async (id: string) => {
+    const { error: deleteError } = await supabase
+      .from(TABLE_ROTAS)
+      .delete()
+      .eq('id', id)
+
+    if (deleteError) {
+      return { error: deleteError.message }
     }
 
     await fetchRotas()
@@ -76,5 +156,8 @@ export function useRotas(): UseRotasReturn {
     error,
     refetch: fetchRotas,
     createRota,
+    updateRota,
+    updateRotaStatus,
+    deleteRota,
   }
 }
