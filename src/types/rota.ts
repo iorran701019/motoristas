@@ -37,6 +37,18 @@ export interface AuthUserSummary {
   is_admin: boolean
 }
 
+/** Registro de auditoria (tabela audit_logs); leitura restrita a admin via RLS */
+export interface AuditLog {
+  id: string
+  created_at: string
+  actor_id: string | null
+  actor_email: string | null
+  action: string
+  entity: string | null
+  entity_id: string | null
+  details: Record<string, unknown> | null
+}
+
 /** Cadastro de motorista (tabela motoristas) */
 export interface Motorista {
   id: string

@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
-import { KeyRound, Loader2, ShieldCheck, UserPlus } from 'lucide-react'
+import { KeyRound, Loader2, ScrollText, ShieldCheck, UserPlus } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { AuditLogTable } from '@/components/admin/AuditLogTable'
 import { useToast } from '@/hooks/use-toast'
 import { createUser, listUsers, resetUserPassword } from '@/lib/admin-users'
 import { usuarioFormSchema } from '@/lib/validations/usuario'
@@ -270,6 +271,18 @@ export function AdminPage() {
               </table>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <ScrollText className="h-5 w-5 text-institucional-700" />
+            Relatório de Auditoria
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <AuditLogTable />
         </CardContent>
       </Card>
     </div>
