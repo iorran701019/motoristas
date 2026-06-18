@@ -5,7 +5,7 @@ export const motoristaFormSchema = z.object({
   nome_completo: z.string().min(3, 'Informe o nome completo'),
   matricula: z
     .string()
-    .regex(/^\d{6}$/, 'A matrícula deve ter exatamente 6 dígitos numéricos.'),
+    .regex(/^[0-9]{4,6}$/, 'Matrícula deve ter de 4 a 6 dígitos'),
 })
 
 export type MotoristaFormValues = z.infer<typeof motoristaFormSchema>

@@ -132,8 +132,8 @@ Deno.serve(async (req) => {
           return json({ error: 'O nome completo deve ter ao menos 3 caracteres.' }, 400)
         }
         const matricula = (body.matricula ?? '').trim()
-        if (!/^[0-9]{6}$/.test(matricula)) {
-          return json({ error: 'A matrícula deve ter exatamente 6 dígitos numéricos.' }, 400)
+        if (!/^[0-9]{4,6}$/.test(matricula)) {
+          return json({ error: 'Matrícula deve ter de 4 a 6 dígitos' }, 400)
         }
 
         const { data: created, error } = await admin.auth.admin.createUser({
