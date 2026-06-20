@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { AuditLogTable } from '@/components/admin/AuditLogTable'
+import { SetoresManager } from '@/components/admin/SetoresManager'
 import { useToast } from '@/hooks/use-toast'
 import { createUser, listUsers, resetUserPassword } from '@/lib/admin-users'
 import { usuarioFormSchema } from '@/lib/validations/usuario'
@@ -273,6 +274,8 @@ export function AdminPage() {
           )}
         </CardContent>
       </Card>
+
+      <SetoresManager />
 
       <Card>
         <CardHeader>

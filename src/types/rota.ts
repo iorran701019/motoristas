@@ -69,3 +69,13 @@ export interface Veiculo {
 }
 
 export type VeiculoInsert = Omit<Veiculo, 'id' | 'created_at'>
+
+/** Setor da SME (tabela setores_sme); cor define a fonte do setor no calendário */
+export interface Setor {
+  id: string
+  nome: string
+  cor: string
+  created_at: string
+}
+
+export type SetorInsert = Omit<Setor, 'id' | 'created_at'>
