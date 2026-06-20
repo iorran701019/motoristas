@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { AlertTriangle, Loader2, Plus } from 'lucide-react'
+import { AlertCircle, AlertTriangle, Loader2, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -26,10 +26,11 @@ import { useRotasContext } from '@/context/RotasContext'
 import { useToast } from '@/hooks/use-toast'
 import { rotaFormSchema, type RotaFormValues } from '@/lib/validations/rota'
 import { formatDateBR, formatTime, intervalosSobrepoem, todayISO } from '@/lib/utils'
-import type { Motorista, RotaMotorista, RotaMotoristaInsert, Veiculo } from '@/types/rota'
+import type { Motorista, RotaMotorista, RotaMotoristaInsert, Setor, Veiculo } from '@/types/rota'
 
 const defaultValues: RotaFormValues = {
   motorista: '',
+  setor_id: '',
   data: todayISO(),
   placa_veiculo: '',
   rota_descricao: '',
@@ -46,10 +47,21 @@ interface RotaFormProps {
   motoristas?: Motorista[]
   /** Veículos cadastrados — base do seletor de placa */
   veiculos?: Veiculo[]
+  /** Setores da SME — base do seletor de setor */
+  setores?: Setor[]
+  /** Estado do fetch de setores (para distinguir carregando / erro / vazio) */
+  setoresLoading?: boolean
+  setoresError?: string | null
 }
 
 /** Formulário de cadastro de rotas inspirado na planilha SME */
-export function RotaForm({ motoristas = [], veiculos = [] }: RotaFormProps) {
+export function RotaForm({
+  motoristas = [],
+  veiculos = [],
+  setores = [],
+  setoresLoading = false,
+  setoresError = null,
+}: RotaFormProps) {
   const { rotas, createRota, updateRota } = useRotasContext()
   const { toast } = useToast()
 
@@ -72,13 +84,16 @@ export function RotaForm({ motoristas = [], veiculos = [] }: RotaFormProps) {
 
   const motoristaSelecionado = watch('motorista')
   const placaSelecionada = watch('placa_veiculo')
+  const setorSelecionado = watch('setor_id')
 
-  const semCadastros = motoristas.length === 0 || veiculos.length === 0
+  const semCadastros =
+    motoristas.length === 0 || veiculos.length === 0 || setores.length === 0
 
   const limparForm = () => reset({ ...defaultValues, data: todayISO() })
 
   const buildPayload = (values: RotaFormValues): RotaMotoristaInsert => ({
     motorista: values.motorista.trim(),
+    setor_id: values.setor_id,
     data: values.data,
     placa_veiculo: values.placa_veiculo,
     rota_descricao: values.rota_descricao.trim(),
@@ -191,8 +206,9 @@ export function RotaForm({ motoristas = [], veiculos = [] }: RotaFormProps) {
             Cadastre{' '}
             <Link to="/cadastros" className="font-medium underline">
               motoristas e veículos
-            </Link>{' '}
-            antes de registrar uma rota — eles aparecem nos campos de seleção abaixo.
+            </Link>
+            {setores.length === 0 && ' e os setores (no Painel Admin)'} antes de registrar uma
+            rota — eles aparecem nos campos de seleção abaixo.
           </div>
         )}
 
@@ -249,6 +265,55 @@ export function RotaForm({ motoristas = [], veiculos = [] }: RotaFormProps) {
                 </SelectContent>
               </Select>
               {fieldError('placa_veiculo')}
+            </div>
+          </div>
+
+          {/* Linha 1b: Setor da SME */}
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label>
+                Setor da SME <span className="text-destructive">*</span>
+              </Label>
+              {setoresError ? (
+                <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  <span>Erro ao carregar setores. Recarregue a página.</span>
+                </div>
+              ) : setoresLoading ? (
+                <Select disabled value="">
+                  <SelectTrigger>
+                    <SelectValue placeholder="Carregando setores..." />
+                  </SelectTrigger>
+                </Select>
+              ) : setores.length === 0 ? (
+                <p className="rounded-md border border-dashed px-3 py-2 text-sm text-muted-foreground">
+                  Nenhum setor cadastrado. Peça a um admin para cadastrar.
+                </p>
+              ) : (
+                <Select
+                  value={setorSelecionado}
+                  onValueChange={(v) => setValue('setor_id', v, { shouldValidate: true })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o setor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {setores.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        <span className="flex items-center gap-2">
+                          <span
+                            className="inline-block h-3 w-3 rounded-sm border border-black/10"
+                            style={{ backgroundColor: s.cor }}
+                            aria-hidden
+                          />
+                          {s.nome}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              {fieldError('setor_id')}
             </div>
           </div>
 

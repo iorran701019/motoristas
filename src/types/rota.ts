@@ -5,6 +5,7 @@ export type RotaStatus = (typeof STATUS_OPTIONS)[number]
 export interface RotaMotorista {
   id: string
   motorista: string
+  setor_id: string
   data: string
   placa_veiculo: string
   rota_descricao: string

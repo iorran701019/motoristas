@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useRotasContext } from '@/context/RotasContext'
+import { useCadastrosContext } from '@/context/CadastrosContext'
 import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/hooks/use-toast'
 import { cn, formatDateBR, formatTime, getStatusClasses } from '@/lib/utils'
@@ -78,8 +79,11 @@ export function RotasTable({ rotas, onRowClick }: RotasTableProps) {
   const [filtroData, setFiltroData] = useState('')
   const [filtroMotorista, setFiltroMotorista] = useState('todos')
   const { deleteRota } = useRotasContext()
+  const { setores } = useCadastrosContext()
   const { isAdmin } = useAuth()
   const { toast } = useToast()
+
+  const setorById = useMemo(() => new Map(setores.map((s) => [s.id, s])), [setores])
 
   const handleDelete = async (id: string) => {
     if (!window.confirm('Excluir esta rota? Esta ação não pode ser desfeita.')) return
@@ -122,6 +126,25 @@ export function RotasTable({ rotas, onRowClick }: RotasTableProps) {
         cell: ({ row }) => formatDateBR(row.original.data),
       },
       { accessorKey: 'motorista', header: 'Motorista' },
+      {
+        id: 'setor',
+        header: 'Setor',
+        accessorFn: (row) => setorById.get(row.setor_id)?.nome ?? '',
+        cell: ({ row }) => {
+          const setor = setorById.get(row.original.setor_id)
+          if (!setor) return '—'
+          return (
+            <span className="flex items-center gap-2">
+              <span
+                className="inline-block h-3 w-3 rounded-sm border border-black/10"
+                style={{ backgroundColor: setor.cor }}
+                aria-hidden
+              />
+              {setor.nome}
+            </span>
+          )
+        },
+      },
       {
         accessorKey: 'status',
         header: 'Status',
@@ -172,7 +195,7 @@ export function RotasTable({ rotas, onRowClick }: RotasTableProps) {
           ) : null,
       },
     ],
-    [isAdmin]
+    [isAdmin, setorById]
   )
 
   const table = useReactTable({
@@ -191,6 +214,7 @@ export function RotasTable({ rotas, onRowClick }: RotasTableProps) {
       const r = row.original
       return (
         r.motorista.toLowerCase().includes(search) ||
+        (setorById.get(r.setor_id)?.nome.toLowerCase().includes(search) ?? false) ||
         r.destino_principal.toLowerCase().includes(search) ||
         r.status.toLowerCase().includes(search) ||
         r.placa_veiculo.toLowerCase().includes(search) ||

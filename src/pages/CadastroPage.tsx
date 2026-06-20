@@ -8,7 +8,7 @@ import { getSupabaseConfig } from '@/lib/supabase-config'
 /** Tela 1 — Cadastro de Rotas */
 export function CadastroPage() {
   const { loading, error } = useRotasContext()
-  const { motoristas, veiculos } = useCadastrosContext()
+  const { motoristas, veiculos, setores, setoresLoading, setoresError } = useCadastrosContext()
 
   const configOk = getSupabaseConfig().isConfigured
 
@@ -30,7 +30,13 @@ export function CadastroPage() {
         <p className="text-sm text-muted-foreground">Carregando dados...</p>
       ) : null}
 
-      <RotaForm motoristas={motoristas} veiculos={veiculos} />
+      <RotaForm
+        motoristas={motoristas}
+        veiculos={veiculos}
+        setores={setores}
+        setoresLoading={setoresLoading}
+        setoresError={setoresError}
+      />
     </div>
   )
 }

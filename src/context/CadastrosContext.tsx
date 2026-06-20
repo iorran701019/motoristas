@@ -1,8 +1,10 @@
 import { createContext, useContext, type ReactNode } from 'react'
 import { useCadastros } from '@/hooks/useCadastros'
+import { useSetores } from '@/hooks/useSetores'
 import type {
   Motorista,
   MotoristaInsert,
+  Setor,
   Veiculo,
   VeiculoInsert,
 } from '@/types/rota'
@@ -10,6 +12,11 @@ import type {
 interface CadastrosContextValue {
   motoristas: Motorista[]
   veiculos: Veiculo[]
+  /** Setores da SME (somente leitura aqui; o CRUD vive no Painel Admin) */
+  setores: Setor[]
+  /** Estado do fetch de setores, propagado para distinguir "carregando"/"erro"/"vazio" */
+  setoresLoading: boolean
+  setoresError: string | null
   loading: boolean
   error: string | null
   refetch: () => Promise<void>
@@ -21,10 +28,15 @@ interface CadastrosContextValue {
 
 const CadastrosContext = createContext<CadastrosContextValue | null>(null)
 
-/** Provider global de motoristas e veículos */
+/** Provider global de motoristas, veículos e setores */
 export function CadastrosProvider({ children }: { children: ReactNode }) {
-  const value = useCadastros()
-  return <CadastrosContext.Provider value={value}>{children}</CadastrosContext.Provider>
+  const cadastros = useCadastros()
+  const { setores, loading: setoresLoading, error: setoresError } = useSetores()
+  return (
+    <CadastrosContext.Provider value={{ ...cadastros, setores, setoresLoading, setoresError }}>
+      {children}
+    </CadastrosContext.Provider>
+  )
 }
 
 export function useCadastrosContext() {

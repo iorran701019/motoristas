@@ -36,7 +36,7 @@ function rotaToEvent(rota: RotaMotorista, idx: number): EventInput {
 
 /** Agenda estilo Google Calendar com visões dia/semana/mês */
 export function RotasCalendar({ rotas, onEventClick, activeMotorista }: RotasCalendarProps) {
-  const { motoristas } = useCadastrosContext()
+  const { motoristas, setores } = useCadastrosContext()
 
   // Índice estável por ordem de CADASTRO (created_at): motorista novo pega a próxima cor
   const motoristaIndex = useMemo(() => {
@@ -47,6 +47,12 @@ export function RotasCalendar({ rotas, onEventClick, activeMotorista }: RotasCal
     ordenados.forEach((m, i) => map.set(m.nome_completo, i))
     return map
   }, [motoristas])
+
+  // Lookup de cor por setor (não copiamos a cor na rota: a cor mora só em setores_sme)
+  const setorCorById = useMemo(
+    () => new Map(setores.map((s) => [s.id, s.cor])),
+    [setores]
+  )
 
   const events = useMemo(
     () => rotas.map((r) => rotaToEvent(r, motoristaIndex.get(r.motorista) ?? -1)),
@@ -98,14 +104,15 @@ export function RotasCalendar({ rotas, onEventClick, activeMotorista }: RotasCal
             activeMotorista === 'todos' ||
             rota.motorista === activeMotorista
 
-          // Barra lateral = tom escuro da cor do motorista (status não aparece mais no bloco)
+          // Barra lateral = cor do setor (lookup por setor_id; fundo segue por motorista).
+          // Fallback para o tom escuro do motorista se o setor ainda não carregou.
           const idx = motoristaIndex.get(rota.motorista) ?? -1
-          const driverBorder = getDriverBorderColor(idx)
+          const barColor = setorCorById.get(rota.setor_id) ?? getDriverBorderColor(idx)
 
           return (
             <div
               className={`overflow-hidden py-0.5 pl-1.5 pr-1 text-xs leading-tight ${isActive ? '' : 'opacity-60'}`}
-              style={{ borderLeft: `4px solid ${driverBorder}`, color: getDriverTextColor() }}
+              style={{ borderLeft: `4px solid ${barColor}`, color: getDriverTextColor() }}
             >
               <div className="font-semibold truncate">{rota.motorista}</div>
               <div className="truncate opacity-90">{rota.destino_principal}</div>

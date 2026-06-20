@@ -3,6 +3,7 @@ import { z } from 'zod'
 /** Schema de validação do formulário de cadastro de rotas */
 export const rotaFormSchema = z.object({
   motorista: z.string().min(2, 'Informe o nome do motorista'),
+  setor_id: z.string().min(1, 'Selecione o setor da SME'),
   data: z.string().min(1, 'Informe a data da rota'),
   placa_veiculo: z
     .string()

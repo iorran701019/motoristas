@@ -6,6 +6,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
+import { useCadastrosContext } from '@/context/CadastrosContext'
 import { formatDateBR, formatTime, getStatusClasses } from '@/lib/utils'
 import type { RotaMotorista } from '@/types/rota'
 
@@ -17,10 +18,14 @@ interface RotaDetailModalProps {
 
 /** Modal com detalhes completos de uma rota (aberto pelo calendário ou tabela) */
 export function RotaDetailModal({ rota, open, onOpenChange }: RotaDetailModalProps) {
+  const { setores } = useCadastrosContext()
   if (!rota) return null
+
+  const setor = setores.find((s) => s.id === rota.setor_id)
 
   const fields = [
     { label: 'Motorista', value: rota.motorista },
+    { label: 'Setor', value: setor?.nome ?? '—' },
     { label: 'Data', value: formatDateBR(rota.data) },
     { label: 'Placa', value: rota.placa_veiculo },
     { label: 'Rota / Trajeto', value: rota.rota_descricao },
@@ -52,6 +57,15 @@ export function RotaDetailModal({ rota, open, onOpenChange }: RotaDetailModalPro
               <dd className="mt-0.5 text-sm text-foreground">
                 {label === 'Status' ? (
                   <Badge className={getStatusClasses(rota.status)}>{rota.status}</Badge>
+                ) : label === 'Setor' && setor ? (
+                  <span className="flex items-center gap-2">
+                    <span
+                      className="inline-block h-3 w-3 rounded-sm border border-black/10"
+                      style={{ backgroundColor: setor.cor }}
+                      aria-hidden
+                    />
+                    {setor.nome}
+                  </span>
                 ) : (
                   value
                 )}
