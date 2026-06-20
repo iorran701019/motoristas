@@ -133,16 +133,7 @@ export function RotasTable({ rotas, onRowClick }: RotasTableProps) {
         cell: ({ row }) => {
           const setor = setorById.get(row.original.setor_id)
           if (!setor) return '—'
-          return (
-            <span className="flex items-center gap-2">
-              <span
-                className="inline-block h-3 w-3 rounded-sm border border-black/10"
-                style={{ backgroundColor: setor.cor }}
-                aria-hidden
-              />
-              {setor.nome}
-            </span>
-          )
+          return setor.nome
         },
       },
       {

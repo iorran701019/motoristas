@@ -48,9 +48,9 @@ export function RotasCalendar({ rotas, onEventClick, activeMotorista }: RotasCal
     return map
   }, [motoristas])
 
-  // Lookup de cor por setor (não copiamos a cor na rota: a cor mora só em setores_sme)
-  const setorCorById = useMemo(
-    () => new Map(setores.map((s) => [s.id, s.cor])),
+  // Lookup de NOME do setor por id (a cor do setor não é mais usada no calendário)
+  const setorNomeById = useMemo(
+    () => new Map(setores.map((s) => [s.id, s.nome])),
     [setores]
   )
 
@@ -104,17 +104,18 @@ export function RotasCalendar({ rotas, onEventClick, activeMotorista }: RotasCal
             activeMotorista === 'todos' ||
             rota.motorista === activeMotorista
 
-          // Barra lateral = cor do setor (lookup por setor_id; fundo segue por motorista).
-          // Fallback para o tom escuro do motorista se o setor ainda não carregou.
+          // Barra lateral e fundo: exclusivamente a cor do motorista (sem cor de setor).
           const idx = motoristaIndex.get(rota.motorista) ?? -1
-          const barColor = setorCorById.get(rota.setor_id) ?? getDriverBorderColor(idx)
+          const driverBorder = getDriverBorderColor(idx)
+          const setorNome = setorNomeById.get(rota.setor_id)
 
           return (
             <div
               className={`overflow-hidden py-0.5 pl-1.5 pr-1 text-xs leading-tight ${isActive ? '' : 'opacity-60'}`}
-              style={{ borderLeft: `4px solid ${barColor}`, color: getDriverTextColor() }}
+              style={{ borderLeft: `4px solid ${driverBorder}`, color: getDriverTextColor() }}
             >
               <div className="font-semibold truncate">{rota.motorista}</div>
+              {setorNome && <div className="font-bold truncate">{setorNome}</div>}
               <div className="truncate opacity-90">{rota.destino_principal}</div>
               <div className="truncate opacity-75">
                 {formatTime(rota.horario_saida)} – {formatTime(rota.horario_retorno)}

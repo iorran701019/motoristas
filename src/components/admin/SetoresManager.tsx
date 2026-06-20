@@ -17,7 +17,6 @@ export function SetoresManager() {
   const { toast } = useToast()
 
   const [nome, setNome] = useState('')
-  const [cor, setCor] = useState(COR_PADRAO)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
@@ -25,21 +24,18 @@ export function SetoresManager() {
 
   const resetForm = () => {
     setNome('')
-    setCor(COR_PADRAO)
     setEditingId(null)
   }
 
   const startEdit = (setor: Setor) => {
     setEditingId(setor.id)
     setNome(setor.nome)
-    setCor(setor.cor)
   }
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
 
-    // Valida o valor exatamente como sai dos inputs, sem normalizar a cor.
-    const parsed = setorFormSchema.safeParse({ nome, cor })
+    const parsed = setorFormSchema.safeParse({ nome })
     if (!parsed.success) {
       toast({
         variant: 'destructive',
@@ -49,10 +45,14 @@ export function SetoresManager() {
       return
     }
 
+    // Cor sai da interface, mas a coluna no banco é NOT NULL/CHECK: enviamos um
+    // padrão fixo. O usuário não escolhe nem vê esse valor.
+    const payload = { nome: parsed.data.nome, cor: COR_PADRAO }
+
     setSubmitting(true)
     const { error: submitError } = isEditing
-      ? await updateSetor(editingId, parsed.data)
-      : await createSetor(parsed.data)
+      ? await updateSetor(editingId, payload)
+      : await createSetor(payload)
     setSubmitting(false)
 
     if (submitError) {
@@ -92,7 +92,7 @@ export function SetoresManager() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-[1fr_auto_auto] md:items-end">
+        <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
           <div>
             <Label htmlFor="setor-nome">Nome do setor</Label>
             <Input
@@ -103,20 +103,6 @@ export function SetoresManager() {
               placeholder="Ex.: Gabinete"
               required
             />
-          </div>
-          <div>
-            <Label htmlFor="setor-cor">Cor</Label>
-            <div className="flex items-center gap-2">
-              <input
-                id="setor-cor"
-                type="color"
-                value={cor}
-                onChange={(e) => setCor(e.target.value)}
-                className="h-10 w-14 cursor-pointer rounded-md border border-input bg-background p-1"
-                aria-label="Cor do setor"
-              />
-              <span className="font-mono text-sm text-muted-foreground">{cor}</span>
-            </div>
           </div>
           <div className="flex gap-2">
             <Button type="submit" disabled={submitting}>
@@ -144,38 +130,27 @@ export function SetoresManager() {
             <thead className="bg-muted/50">
               <tr>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Nome</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Cor</th>
                 <th className="px-4 py-3 text-right font-medium text-muted-foreground">Ações</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={3} className="px-4 py-6 text-center text-muted-foreground">
+                  <td colSpan={2} className="px-4 py-6 text-center text-muted-foreground">
                     Carregando...
                   </td>
                 </tr>
               ) : setores.length === 0 ? (
                 <tr>
-                  <td colSpan={3} className="px-4 py-6 text-center text-muted-foreground">
+                  <td colSpan={2} className="px-4 py-6 text-center text-muted-foreground">
                     Nenhum setor cadastrado.
                   </td>
                 </tr>
               ) : (
                 setores.map((setor) => (
                   <tr key={setor.id} className="border-t">
-                    <td className="px-4 py-3 font-medium" style={{ color: setor.cor }}>
+                    <td className="px-4 py-3 font-medium">
                       {setor.nome}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className="inline-block h-4 w-4 rounded border border-black/10"
-                          style={{ backgroundColor: setor.cor }}
-                          aria-hidden
-                        />
-                        <span className="font-mono text-xs text-muted-foreground">{setor.cor}</span>
-                      </div>
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex justify-end gap-1">

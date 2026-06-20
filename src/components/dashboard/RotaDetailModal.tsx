@@ -57,15 +57,6 @@ export function RotaDetailModal({ rota, open, onOpenChange }: RotaDetailModalPro
               <dd className="mt-0.5 text-sm text-foreground">
                 {label === 'Status' ? (
                   <Badge className={getStatusClasses(rota.status)}>{rota.status}</Badge>
-                ) : label === 'Setor' && setor ? (
-                  <span className="flex items-center gap-2">
-                    <span
-                      className="inline-block h-3 w-3 rounded-sm border border-black/10"
-                      style={{ backgroundColor: setor.cor }}
-                      aria-hidden
-                    />
-                    {setor.nome}
-                  </span>
                 ) : (
                   value
                 )}

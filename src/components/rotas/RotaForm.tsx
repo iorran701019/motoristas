@@ -300,14 +300,7 @@ export function RotaForm({
                   <SelectContent>
                     {setores.map((s) => (
                       <SelectItem key={s.id} value={s.id}>
-                        <span className="flex items-center gap-2">
-                          <span
-                            className="inline-block h-3 w-3 rounded-sm border border-black/10"
-                            style={{ backgroundColor: s.cor }}
-                            aria-hidden
-                          />
-                          {s.nome}
-                        </span>
+                        {s.nome}
                       </SelectItem>
                     ))}
                   </SelectContent>
