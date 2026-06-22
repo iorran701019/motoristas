@@ -5,6 +5,7 @@ import type {
   Motorista,
   MotoristaInsert,
   Setor,
+  SetorInsert,
   Veiculo,
   VeiculoInsert,
 } from '@/types/rota'
@@ -12,7 +13,12 @@ import type {
 interface CadastrosContextValue {
   motoristas: Motorista[]
   veiculos: Veiculo[]
-  /** Setores da SME (somente leitura aqui; o CRUD vive no Painel Admin) */
+  /**
+   * Setores da SME — FONTE ÚNICA. Esta é a única instância de useSetores do app
+   * (montada aqui no provider). O CRUD do Painel Admin (SetoresManager) opera por
+   * estas mesmas funções, então criar/editar/excluir setor reflete imediatamente
+   * no RotaForm, no calendário e na RotasTable, sem F5.
+   */
   setores: Setor[]
   /** Estado do fetch de setores, propagado para distinguir "carregando"/"erro"/"vazio" */
   setoresLoading: boolean
@@ -20,10 +26,14 @@ interface CadastrosContextValue {
   loading: boolean
   error: string | null
   refetch: () => Promise<void>
+  refetchSetores: () => Promise<void>
   createMotorista: (data: MotoristaInsert) => Promise<{ error: string | null }>
   deleteMotorista: (id: string) => Promise<{ error: string | null }>
   createVeiculo: (data: VeiculoInsert) => Promise<{ error: string | null }>
   deleteVeiculo: (id: string) => Promise<{ error: string | null }>
+  createSetor: (data: SetorInsert) => Promise<{ error: string | null }>
+  updateSetor: (id: string, data: SetorInsert) => Promise<{ error: string | null }>
+  deleteSetor: (id: string) => Promise<{ error: string | null }>
 }
 
 const CadastrosContext = createContext<CadastrosContextValue | null>(null)
@@ -31,9 +41,30 @@ const CadastrosContext = createContext<CadastrosContextValue | null>(null)
 /** Provider global de motoristas, veículos e setores */
 export function CadastrosProvider({ children }: { children: ReactNode }) {
   const cadastros = useCadastros()
-  const { setores, loading: setoresLoading, error: setoresError } = useSetores()
+  // Instância ÚNICA de useSetores no app: expõe estado + mutações para que o
+  // Painel Admin e os consumidores de leitura compartilhem a mesma fonte.
+  const {
+    setores,
+    loading: setoresLoading,
+    error: setoresError,
+    refetch: refetchSetores,
+    createSetor,
+    updateSetor,
+    deleteSetor,
+  } = useSetores()
   return (
-    <CadastrosContext.Provider value={{ ...cadastros, setores, setoresLoading, setoresError }}>
+    <CadastrosContext.Provider
+      value={{
+        ...cadastros,
+        setores,
+        setoresLoading,
+        setoresError,
+        refetchSetores,
+        createSetor,
+        updateSetor,
+        deleteSetor,
+      }}
+    >
       {children}
     </CadastrosContext.Provider>
   )

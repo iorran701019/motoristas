@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
-import { useSetores } from '@/hooks/useSetores'
+import { useCadastrosContext } from '@/context/CadastrosContext'
 import { setorFormSchema } from '@/lib/validations/setor'
 import type { Setor } from '@/types/rota'
 
@@ -13,7 +13,16 @@ const COR_PADRAO = '#1e40af'
 
 /** Gestão dos setores da SME (admin). Form de criar/editar + tabela. */
 export function SetoresManager() {
-  const { setores, loading, error, createSetor, updateSetor, deleteSetor } = useSetores()
+  // Fonte ÚNICA: consome a mesma instância de setores do CadastrosProvider, para
+  // que criar/editar/excluir aqui reflita no RotaForm/calendário/RotasTable sem F5.
+  const {
+    setores,
+    setoresLoading: loading,
+    setoresError: error,
+    createSetor,
+    updateSetor,
+    deleteSetor,
+  } = useCadastrosContext()
   const { toast } = useToast()
 
   const [nome, setNome] = useState('')
