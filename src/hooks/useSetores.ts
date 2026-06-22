@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/context/AuthContext'
 import { logAction } from '@/lib/audit'
 import { getSupabaseConfig } from '@/lib/supabase-config'
 import type { Setor, SetorInsert } from '@/types/rota'
@@ -19,6 +20,8 @@ interface UseSetoresReturn {
  * RLS: leitura para qualquer autenticado; escrita só admin (migration 013).
  */
 export function useSetores(): UseSetoresReturn {
+  const { session } = useAuth()
+  const userId = session?.user?.id
   const [setores, setSetores] = useState<Setor[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -49,8 +52,10 @@ export function useSetores(): UseSetoresReturn {
   }, [])
 
   useEffect(() => {
-    fetchSetores()
-  }, [fetchSetores])
+    // Só busca quando há sessão autenticada — evita o fetch anon (0 linhas) do
+    // boot e refaz ao logar/trocar de conta na mesma aba.
+    if (userId) fetchSetores()
+  }, [userId, fetchSetores])
 
   const createSetor = async (payload: SetorInsert) => {
     const { data, error: insertError } = await supabase

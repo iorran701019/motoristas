@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase, TABLE_ROTAS } from '@/lib/supabase'
+import { useAuth } from '@/context/AuthContext'
 import { logAction } from '@/lib/audit'
 import { getSupabaseConfig } from '@/lib/supabase-config'
 import { todayISO } from '@/lib/utils'
@@ -40,6 +41,8 @@ function computeStats(rotas: RotaMotorista[]): DashboardStats {
  * Centraliza fetch e criação para reutilização entre páginas.
  */
 export function useRotas(): UseRotasReturn {
+  const { session } = useAuth()
+  const userId = session?.user?.id
   const [rotas, setRotas] = useState<RotaMotorista[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -75,8 +78,10 @@ export function useRotas(): UseRotasReturn {
   }, [])
 
   useEffect(() => {
-    fetchRotas()
-  }, [fetchRotas])
+    // Só busca quando há sessão autenticada — evita o fetch anon (0 linhas) do
+    // boot e refaz ao logar/trocar de conta na mesma aba.
+    if (userId) fetchRotas()
+  }, [userId, fetchRotas])
 
   const createRota = async (payload: RotaMotoristaInsert) => {
     const { data, error: insertError } = await supabase

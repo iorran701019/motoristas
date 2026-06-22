@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/context/AuthContext'
 import { logAction } from '@/lib/audit'
 import { getSupabaseConfig } from '@/lib/supabase-config'
 import type {
@@ -26,6 +27,8 @@ interface UseCadastrosReturn {
  * Compartilhado entre a tela de gerência e o formulário de rotas.
  */
 export function useCadastros(): UseCadastrosReturn {
+  const { session } = useAuth()
+  const userId = session?.user?.id
   const [motoristas, setMotoristas] = useState<Motorista[]>([])
   const [veiculos, setVeiculos] = useState<Veiculo[]>([])
   const [loading, setLoading] = useState(true)
@@ -60,8 +63,10 @@ export function useCadastros(): UseCadastrosReturn {
   }, [])
 
   useEffect(() => {
-    fetchCadastros()
-  }, [fetchCadastros])
+    // Só busca quando há sessão autenticada — evita o fetch anon (0 linhas) do
+    // boot e refaz ao logar/trocar de conta na mesma aba.
+    if (userId) fetchCadastros()
+  }, [userId, fetchCadastros])
 
   const createMotorista = async (payload: MotoristaInsert) => {
     const { data, error: insertError } = await supabase
