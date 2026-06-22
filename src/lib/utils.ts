@@ -18,9 +18,18 @@ export function formatTime(timeStr: string): string {
   return timeStr.slice(0, 5)
 }
 
-/** Retorna data de hoje no formato YYYY-MM-DD */
+/**
+ * Retorna a data de HOJE no formato YYYY-MM-DD usando os componentes LOCAIS
+ * do relógio. Não usa toISOString() (UTC): no fuso de Brasília (UTC-3), entre
+ * ~21h e a meia-noite o dia em UTC já é o seguinte, o que faria a "data de hoje"
+ * saltar para amanhã. Mesmo padrão de derivação local usado em AuditLogTable.
+ */
 export function todayISO(): string {
-  return new Date().toISOString().split('T')[0]
+  const d = new Date()
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
 }
 
 /**
@@ -49,19 +58,5 @@ export function getStatusClasses(status: RotaStatus): string {
     case 'Agendada':
     default:
       return 'bg-blue-100 text-blue-800 border-blue-200'
-  }
-}
-
-export function getCalendarStatusColors(status: RotaStatus): { bg: string; border: string } {
-  switch (status) {
-    case 'Concluída':
-      return { bg: '#10b981', border: '#047857' }
-    case 'Cancelada':
-      return { bg: '#ef4444', border: '#b91c1c' }
-    case 'Adiada':
-      return { bg: '#f59e0b', border: '#b45309' }
-    case 'Agendada':
-    default:
-      return { bg: '#3b82f6', border: '#1d4ed8' }
   }
 }

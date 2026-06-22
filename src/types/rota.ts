@@ -22,14 +22,6 @@ export interface RotaMotorista {
 /** Payload para inserção (sem id e created_at) */
 export type RotaMotoristaInsert = Omit<RotaMotorista, 'id' | 'created_at'>
 
-/** Métricas agregadas do dashboard */
-export interface DashboardStats {
-  totalRotas: number
-  totalMotoristas: number
-  rotasHoje: number
-  totalPassageiros: number
-}
-
 export interface AuthUserSummary {
   id: string
   email: string

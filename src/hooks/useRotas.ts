@@ -3,9 +3,7 @@ import { supabase, TABLE_ROTAS } from '@/lib/supabase'
 import { useAuth } from '@/context/AuthContext'
 import { logAction } from '@/lib/audit'
 import { getSupabaseConfig } from '@/lib/supabase-config'
-import { todayISO } from '@/lib/utils'
 import type {
-  DashboardStats,
   RotaMotorista,
   RotaMotoristaInsert,
   RotaStatus,
@@ -13,7 +11,6 @@ import type {
 
 interface UseRotasReturn {
   rotas: RotaMotorista[]
-  stats: DashboardStats
   loading: boolean
   error: string | null
   refetch: () => Promise<void>
@@ -21,19 +18,6 @@ interface UseRotasReturn {
   updateRota: (id: string, data: RotaMotoristaInsert) => Promise<{ error: string | null }>
   updateRotaStatus: (id: string, status: RotaStatus) => Promise<{ error: string | null }>
   deleteRota: (id: string) => Promise<{ error: string | null }>
-}
-
-/** Calcula estatísticas do dashboard a partir da lista de rotas */
-function computeStats(rotas: RotaMotorista[]): DashboardStats {
-  const hoje = todayISO()
-  const motoristas = new Set(rotas.map((r) => r.motorista.trim().toLowerCase()))
-
-  return {
-    totalRotas: rotas.length,
-    totalMotoristas: motoristas.size,
-    rotasHoje: rotas.filter((r) => r.data === hoje).length,
-    totalPassageiros: rotas.reduce((sum, r) => sum + (r.qtd_passageiros ?? 0), 0),
-  }
 }
 
 /**
@@ -156,7 +140,6 @@ export function useRotas(): UseRotasReturn {
 
   return {
     rotas,
-    stats: computeStats(rotas),
     loading,
     error,
     refetch: fetchRotas,

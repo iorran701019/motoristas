@@ -1,7 +1,6 @@
 import { createContext, useContext, type ReactNode } from 'react'
 import { useRotas } from '@/hooks/useRotas'
 import type {
-  DashboardStats,
   RotaMotorista,
   RotaMotoristaInsert,
   RotaStatus,
@@ -9,7 +8,6 @@ import type {
 
 interface RotasContextValue {
   rotas: RotaMotorista[]
-  stats: DashboardStats
   loading: boolean
   error: string | null
   refetch: () => Promise<void>
