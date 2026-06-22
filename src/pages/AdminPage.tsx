@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { KeyRound, Loader2, ScrollText, ShieldCheck, UserPlus } from 'lucide-react'
+import { KeyRound, Loader2, ScrollText, ShieldCheck, Trash2, UserPlus } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -8,12 +8,14 @@ import { Label } from '@/components/ui/label'
 import { AuditLogTable } from '@/components/admin/AuditLogTable'
 import { SetoresManager } from '@/components/admin/SetoresManager'
 import { useToast } from '@/hooks/use-toast'
-import { createUser, listUsers, resetUserPassword } from '@/lib/admin-users'
+import { createUser, deleteUser, listUsers, resetUserPassword } from '@/lib/admin-users'
+import { useAuth } from '@/context/AuthContext'
 import { usuarioFormSchema } from '@/lib/validations/usuario'
 import type { AuthUserSummary } from '@/types/rota'
 
 export function AdminPage() {
   const { toast } = useToast()
+  const { user: currentUser } = useAuth()
   const [users, setUsers] = useState<AuthUserSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [newEmail, setNewEmail] = useState('')
@@ -24,6 +26,7 @@ export function AdminPage() {
   const [resetPasswords, setResetPasswords] = useState<Record<string, string>>({})
   const [submittingCreate, setSubmittingCreate] = useState(false)
   const [submittingReset, setSubmittingReset] = useState<string | null>(null)
+  const [submittingDelete, setSubmittingDelete] = useState<string | null>(null)
 
   const fetchUsers = async () => {
     setLoading(true)
@@ -129,6 +132,30 @@ export function AdminPage() {
     setResetPasswords((prev) => ({ ...prev, [userId]: '' }))
   }
 
+  const handleDelete = async (user: AuthUserSummary) => {
+    if (!window.confirm(`Excluir o operador ${user.email}? Esta ação não pode ser desfeita.`)) {
+      return
+    }
+
+    setSubmittingDelete(user.id)
+    const { error } = await deleteUser(user.id)
+    setSubmittingDelete(null)
+
+    if (error) {
+      // As travas server-side já retornam mensagens prontas (ex.: tentativa de
+      // excluir admin cai na trava 2 da Edge Function).
+      toast({ variant: 'destructive', title: 'Erro ao excluir usuário', description: error })
+      return
+    }
+
+    toast({
+      variant: 'success',
+      title: 'Usuário excluído',
+      description: `${user.email} foi removido.`,
+    })
+    fetchUsers()
+  }
+
   return (
     <div className="space-y-6">
       <Card>
@@ -223,6 +250,7 @@ export function AdminPage() {
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">Criado em</th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">Último login</th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">Nova senha</th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -265,6 +293,25 @@ export function AdminPage() {
                             Resetar
                           </Button>
                         </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        {/* Gating visual: lixeira só para operador e nunca na
+                            própria linha. A segurança real é server-side. */}
+                        {!user.is_admin && user.id !== currentUser?.id ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(user)}
+                            disabled={submittingDelete === user.id}
+                            aria-label="Excluir usuário"
+                          >
+                            {submittingDelete === user.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            )}
+                          </Button>
+                        ) : null}
                       </td>
                     </tr>
                   ))}

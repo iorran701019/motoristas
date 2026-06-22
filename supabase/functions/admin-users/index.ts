@@ -19,7 +19,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/cors.ts'
 
 interface RequestBody {
-  action: 'list' | 'create' | 'reset_password'
+  action: 'list' | 'create' | 'reset_password' | 'delete'
   email?: string
   password?: string
   nomeCompleto?: string
@@ -186,6 +186,37 @@ Deno.serve(async (req) => {
         })
         if (error) throw error
 
+        return json({ ok: true })
+      }
+
+      case 'delete': {
+        if (!body.userId) {
+          return json({ error: 'Usuário é obrigatório.' }, 400)
+        }
+        // TRAVA 1 — não pode excluir a própria conta.
+        if (body.userId === caller.id) {
+          return json({ error: 'Você não pode excluir a própria conta.' }, 400)
+        }
+        // TRAVA 2 — não excluir admins pela interface. O gating do botão é só
+        // visual; a segurança real é aqui. Consulta o role do ALVO.
+        const { data: targetRole } = await admin
+          .from('app_user_roles')
+          .select('role')
+          .eq('user_id', body.userId)
+          .maybeSingle()
+        if (targetRole?.role === 'admin') {
+          return json(
+            {
+              error:
+                'Não é permitido excluir administradores pela interface. Remova pelo banco de dados.',
+            },
+            403
+          )
+        }
+        // CASCADE remove app_user_profiles/app_user_roles; audit_logs.actor_id
+        // vira NULL. Não é preciso apagar manualmente dessas tabelas.
+        const { error } = await admin.auth.admin.deleteUser(body.userId)
+        if (error) throw error
         return json({ ok: true })
       }
 

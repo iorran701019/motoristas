@@ -21,7 +21,7 @@ async function extractFnError(error: unknown): Promise<string> {
 }
 
 async function invokeAdminFn<T>(
-  action: 'list' | 'create' | 'reset_password',
+  action: 'list' | 'create' | 'reset_password' | 'delete',
   payload?: Record<string, unknown>
 ): Promise<AdminFunctionResult<T>> {
   const { data, error } = await supabase.functions.invoke('admin-users', {
@@ -57,4 +57,8 @@ export async function createUser(
 
 export async function resetUserPassword(userId: string, newPassword: string) {
   return invokeAdminFn<{ ok: true }>('reset_password', { userId, newPassword })
+}
+
+export async function deleteUser(userId: string) {
+  return invokeAdminFn<{ ok: true }>('delete', { userId })
 }
